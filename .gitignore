@@ -1,0 +1,26 @@
+# Ambientes Virtuais Python
+.ve/
+.venv/
+venv/
+env/
+
+# Configurações e Segredos Locais
+.env
+*.local
+
+# Cache Python
+__pycache__/
+*.py[cod]
+*.class
+.pytest_cache/
+
+# Rust / Compilação Nativa
+target/
+*.pyd
+*.so
+*.dylib
+
+# Banco de Dados Local & Áudio de Teste
+*.db
+*.sqlite3
+temp_audio/

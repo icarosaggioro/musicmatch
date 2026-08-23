@@ -1,0 +1,45 @@
+# ==============================================================================
+# pyproject.toml - Configuração Central e Padrão de Build do Python (PEP 517/518/621)
+# ==============================================================================
+# Este arquivo substitui o formato legado (setup.py, setup.cfg e requirements.txt)
+# unificando metadados, dependências, scripts de execução e configuração de build.
+
+[build-system]
+# Define a ferramenta responsável por construir e instalar o pacote.
+# setuptools é o padrão robusto para Python puro; quando integrarmos extensões Rust,
+# poderemos alternar ou complementar com 'maturin' (PEP 517).
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "musicmatch"
+version = "0.1.0"
+description = "Gerenciador, reprodutor e curador de música IA-Native para grandes bibliotecas locais."
+readme = "PROJECT_CONTEXT.md"
+requires-python = ">=3.11"
+authors = [
+    { name = "MusicMatch Team" }
+]
+keywords = ["audio", "ai-agents", "mp3", "dsp", "music", "gemini"]
+
+# Dependências obrigatórias de execução em produção
+dependencies = [
+    "google-genai>=0.1.0",
+    "pydantic>=2.0.0",
+    "python-dotenv>=1.0.0",
+]
+
+[project.optional-dependencies]
+# Dependências opcionais para testes e qualidade de código
+dev = [
+    "pytest>=8.0.0",
+    "pytest-asyncio>=0.23.0",
+]
+
+[project.scripts]
+# Cria o comando de terminal executável global 'musicmatch'
+musicmatch = "musicmatch.cli:main"
+
+[tool.setuptools.packages.find]
+# Instrução para localizar automaticamente todos os subpacotes dentro do diretório 'src'
+where = ["src"]

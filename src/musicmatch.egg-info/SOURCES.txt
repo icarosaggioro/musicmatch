@@ -1,0 +1,15 @@
+PROJECT_CONTEXT.md
+pyproject.toml
+src/musicmatch/__init__.py
+src/musicmatch/cli.py
+src/musicmatch/config.py
+src/musicmatch.egg-info/PKG-INFO
+src/musicmatch.egg-info/SOURCES.txt
+src/musicmatch.egg-info/dependency_links.txt
+src/musicmatch.egg-info/entry_points.txt
+src/musicmatch.egg-info/requires.txt
+src/musicmatch.egg-info/top_level.txt
+src/musicmatch/agent/core.py
+src/musicmatch/domain/models.py
+src/musicmatch/storage/mock_db.py
+src/musicmatch/tools/scanner.py

@@ -1,0 +1,2 @@
+[console_scripts]
+musicmatch = musicmatch.cli:main
