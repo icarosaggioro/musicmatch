@@ -230,3 +230,23 @@ def test_search_combined_syntax_fallback(repo):
     repo.insert_track(t)
     results = repo.search_combined(query='"Hybrid', genre="Rock")
     assert len(results) >= 0
+
+def test_get_all_tracks_pagination(repo):
+    for i in range(1, 6):
+        repo.insert_track(make_sample_track(f"t{i}", f"Track {i}", artist=f"Artist {i}", path=f"C:/{i}.mp3"))
+
+    assert len(repo.get_all_tracks()) == 5
+    page1 = repo.get_all_tracks(limit=2, offset=0)
+    assert len(page1) == 2
+    assert page1[0].artist == "Artist 1"
+    assert page1[1].artist == "Artist 2"
+
+    page2 = repo.get_all_tracks(limit=2, offset=2)
+    assert len(page2) == 2
+    assert page2[0].artist == "Artist 3"
+    assert page2[1].artist == "Artist 4"
+
+    page3 = repo.get_all_tracks(limit=2, offset=4)
+    assert len(page3) == 1
+    assert page3[0].artist == "Artist 5"
+

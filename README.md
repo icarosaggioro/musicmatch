@@ -60,7 +60,7 @@ The project follows a didactic, incremental **Walking Skeleton** strategy: estab
 - **Persistence & Search Engine**: Embedded SQLite with **FTS5** (*Full-Text Search*) inverted index, external content synchronization triggers, and BM25 relevance scoring
 - **Business Service Layer**: `LibraryService` encapsulating audio library use cases, metadata ingestion, and hybrid search
 - **Harness & Interface**: Decoupled Event Loop with Command Pattern and `ConsoleUI` renderer
-- **Testing & Quality Assurance**: `pytest`, `pytest-asyncio`, `pytest-cov`, `coverage` (**97% code coverage**)
+- **Testing & Quality Assurance**: `pytest`, `pytest-asyncio`, `pytest-cov`, `coverage` (**98% code coverage**)
 - **Native High-Performance DSP Engine (Roadmap)**: Rust compiled via `PyO3` and `Maturin`
 
 ---
@@ -119,6 +119,7 @@ MusicMatch features fast administrative commands prefixed with `/` that execute 
 | :--- | :--- |
 | `/help` | Displays the complete list of commands and usage instructions. |
 | `/status` | Shows the active Gemini model, total indexed tracks, and SQLite storage stats. |
+| `/list [n]` | Lists tracks from the library with 20 items/page and interactive cancellation. |
 | `/search <query>` | Performs instantaneous full-text search across the library using SQLite FTS5. |
 | `/scan <path>` | Triggers the audio scanner directly (e.g., `/scan C:/Music`). |
 | `/clear` | Clears the terminal screen. |
@@ -150,7 +151,7 @@ Any user input that does not start with `/` is automatically routed to the AI Ag
 
 ## 🧪 Automated Testing & Coverage
 
-The project includes **63 automated unit tests** covering the agent ReAct loop with deterministic mocks (zero API token cost), Pydantic runtime validations, harness routing, SQLite FTS5 triggers and search ranking, library service use cases, and UI rendering:
+The project includes **73 automated unit tests** covering the agent ReAct loop with deterministic mocks (zero API token cost), Pydantic runtime validations, harness routing, interactive `/list` pagination with cancellation, SQLite FTS5 triggers and search ranking, library service use cases, and UI rendering:
 
 ```powershell
 # Run all tests
@@ -160,7 +161,7 @@ pytest
 pytest --cov=musicmatch --cov-report=term-missing
 ```
 
-### Current Coverage Report: **97%**
+### Current Coverage Report: **98%**
 ```text
 Name                                    Stmts   Miss  Cover
 -----------------------------------------------------------
@@ -169,7 +170,7 @@ src\musicmatch\agent\core.py               49      4    92%
 src\musicmatch\cli.py                      10      1    90%
 src\musicmatch\commands\__init__.py         3      0   100%
 src\musicmatch\commands\base.py            13      1    92%
-src\musicmatch\commands\registry.py       113      1    99%
+src\musicmatch\commands\registry.py       150      1    99%
 src\musicmatch\config.py                   11      0   100%
 src\musicmatch\domain\models.py            24      0   100%
 src\musicmatch\harness\__init__.py          2      0   100%
@@ -177,16 +178,16 @@ src\musicmatch\harness\loop.py             37      0   100%
 src\musicmatch\services\__init__.py         2      0   100%
 src\musicmatch\services\library.py         37      1    97%
 src\musicmatch\storage\__init__.py          3      0   100%
-src\musicmatch\storage\mock_db.py          20      3    85%
+src\musicmatch\storage\mock_db.py          23      0   100%
 src\musicmatch\storage\schema.py            6      0   100%
-src\musicmatch\storage\sqlite_repo.py     137      5    96%
+src\musicmatch\storage\sqlite_repo.py     139      5    96%
 src\musicmatch\tools\__init__.py            3      0   100%
 src\musicmatch\tools\scanner.py             6      0   100%
 src\musicmatch\tools\search.py              6      0   100%
 src\musicmatch\ui\__init__.py               2      0   100%
-src\musicmatch\ui\renderer.py              53      0   100%
+src\musicmatch\ui\renderer.py              66      0   100%
 -----------------------------------------------------------
-TOTAL                                     538     16    97%
+TOTAL                                     593     13    98%
 ```
 
 ---

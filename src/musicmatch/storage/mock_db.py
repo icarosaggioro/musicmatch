@@ -23,9 +23,12 @@ class MockDatabase:
         """Recupera uma faixa pelo seu ID único."""
         return self._tracks.get(track_id)
 
-    def get_all_tracks(self) -> List[Track]:
-        """Retorna todas as faixas atualmente indexadas."""
-        return list(self._tracks.values())
+    def get_all_tracks(self, limit: Optional[int] = None, offset: int = 0) -> List[Track]:
+        """Retorna todas as faixas atualmente indexadas com suporte a paginação."""
+        tracks = list(self._tracks.values())
+        if limit is not None:
+            return tracks[offset : offset + limit]
+        return tracks
 
     def count(self) -> int:
         """Retorna a quantidade total de faixas registradas."""

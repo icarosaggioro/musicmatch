@@ -158,9 +158,15 @@ class SQLiteTrackRepository:
         row = cursor.fetchone()
         return self._row_to_track(row) if row else None
 
-    def get_all_tracks(self) -> List[Track]:
-        """Retorna todas as faixas ordenadas por Artista, Álbum e Título."""
-        cursor = self.conn.execute("SELECT * FROM tracks ORDER BY artist, album, title;")
+    def get_all_tracks(self, limit: Optional[int] = None, offset: int = 0) -> List[Track]:
+        """Retorna todas as faixas ordenadas por Artista, Álbum e Título com suporte a paginação."""
+        if limit is not None:
+            cursor = self.conn.execute(
+                "SELECT * FROM tracks ORDER BY artist, album, title LIMIT ? OFFSET ?;",
+                (limit, offset),
+            )
+        else:
+            cursor = self.conn.execute("SELECT * FROM tracks ORDER BY artist, album, title;")
         return [self._row_to_track(row) for row in cursor.fetchall()]
 
     def search_fulltext(self, query: str, limit: int = 50) -> List[Track]:

@@ -84,6 +84,31 @@ class ConsoleUI:
         """Exibe uma mensagem de erro visualmente destacada."""
         print(f"❌   {message}")
 
+    def render_track_page(
+        self,
+        tracks: List[Any],
+        page: int,
+        total_pages: int,
+        total_count: int,
+        start_idx: int = 1,
+    ) -> None:
+        """Exibe uma página de faixas formatadas com título e caminho."""
+        print("\n" + "-" * 72)
+        print(f"📑 BIBLIOTECA DE MÚSICAS [Página {page}/{total_pages} - Total: {total_count} faixa(s)]:")
+        print("-" * 72)
+        for i, t in enumerate(tracks, start=start_idx):
+            artist_str = f" - {t.artist}" if getattr(t, "artist", None) else ""
+            print(f"  {i:>3}. {t.title}{artist_str}")
+            print(f"       Caminho: {t.file_path}")
+        print("-" * 72)
+
+    def prompt_pagination(self) -> str:
+        """Solicita ação do usuário para controle da paginação."""
+        try:
+            return input("⏩ Pressione [Enter] para a próxima página ou ['q'/'c'] para cancelar: ").strip().lower()
+        except (KeyboardInterrupt, EOFError):
+            return "q"
+
     def render_goodbye(self) -> None:
         """Exibe a mensagem de encerramento da sessão."""
         print("\nEncerrando sessão do MusicMatch. Até logo!\n")

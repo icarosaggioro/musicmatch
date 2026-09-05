@@ -108,3 +108,31 @@ def test_clear_screen():
     with patch("os.system") as mock_os_system:
         ui.clear_screen()
         mock_os_system.assert_called_once()
+
+def test_render_track_page(capsys):
+    ui = ConsoleUI()
+    track1 = MagicMock(title="Bohemian Rhapsody", artist="Queen", file_path="C:/1.mp3")
+    track2 = MagicMock(title="Under Pressure", artist="Queen & Bowie", file_path="C:/2.mp3")
+
+    ui.render_track_page([track1, track2], page=1, total_pages=2, total_count=4, start_idx=1)
+    captured = capsys.readouterr().out
+
+    assert "BIBLIOTECA DE MÚSICAS [Página 1/2 - Total: 4 faixa(s)]" in captured
+    assert "1. Bohemian Rhapsody - Queen" in captured
+    assert "Caminho: C:/1.mp3" in captured
+    assert "2. Under Pressure - Queen & Bowie" in captured
+
+def test_prompt_pagination(monkeypatch):
+    ui = ConsoleUI()
+
+    monkeypatch.setattr("builtins.input", lambda _: "  ")
+    assert ui.prompt_pagination() == ""
+
+    monkeypatch.setattr("builtins.input", lambda _: "Q")
+    assert ui.prompt_pagination() == "q"
+
+    def mock_interrupt(_):
+        raise KeyboardInterrupt()
+
+    monkeypatch.setattr("builtins.input", mock_interrupt)
+    assert ui.prompt_pagination() == "q"

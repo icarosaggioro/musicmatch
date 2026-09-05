@@ -53,9 +53,9 @@ class LibraryService:
         """Recupera uma faixa pelo seu caminho de arquivo."""
         return self.repo.get_track_by_path(file_path)
 
-    def get_all_tracks(self) -> List[Track]:
-        """Retorna todas as faixas cadastradas no acervo."""
-        return self.repo.get_all_tracks()
+    def get_all_tracks(self, limit: Optional[int] = None, offset: int = 0) -> List[Track]:
+        """Retorna todas as faixas cadastradas no acervo com suporte a paginação."""
+        return self.repo.get_all_tracks(limit=limit, offset=offset)
 
     def search_tracks(
         self,

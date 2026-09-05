@@ -28,6 +28,25 @@ def test_mock_database_operations():
     all_tracks = db.get_all_tracks()
     assert len(all_tracks) == 1
     assert all_tracks[0].title == "Test Song"
+
+    # Paginação
+    paginated = db.get_all_tracks(limit=1, offset=0)
+    assert len(paginated) == 1
+
+    # Inserção em lote
+    track2 = Track(
+        id="t2",
+        title="Song 2",
+        artist="Artist 2",
+        album="Album 2",
+        genre="Jazz",
+        duration_seconds=200.0,
+        bitrate_kbps=256,
+        bpm=95.0,
+        file_path="C:/Music/song2.mp3"
+    )
+    db.insert_batch([track2])
+    assert db.count() == 2
     
     db.clear()
     assert db.count() == 0

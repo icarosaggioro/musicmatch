@@ -99,3 +99,16 @@ def test_service_stats_and_clear(service):
     service.clear_library()
     assert service.count_tracks() == 0
     assert len(service.get_all_tracks()) == 0
+
+def test_service_get_all_tracks_pagination(service):
+    service.scan_and_ingest("C:/MyMusic")
+    all_tracks = service.get_all_tracks()
+    assert len(all_tracks) == 5
+
+    paginated = service.get_all_tracks(limit=2, offset=0)
+    assert len(paginated) == 2
+
+    paginated_offset = service.get_all_tracks(limit=2, offset=2)
+    assert len(paginated_offset) == 2
+    assert paginated[0].id != paginated_offset[0].id
+

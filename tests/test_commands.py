@@ -25,6 +25,7 @@ def test_command_registry_defaults():
     
     assert "/help" in names
     assert "/status" in names
+    assert "/list" in names
     assert "/scan" in names
     assert "/search" in names
     assert "/clear" in names
@@ -172,3 +173,91 @@ def test_dispatch_search_no_results(mock_context):
     should_continue = registry.dispatch("/search Desconhecido", mock_context)
     assert should_continue is True
     mock_context.ui.render_info.assert_called()
+
+def test_dispatch_list_empty_library(mock_context):
+    registry = CommandRegistry()
+    mock_context.registry = registry
+    mock_context.db.count.return_value = 0
+
+    should_continue = registry.dispatch("/list", mock_context)
+    assert should_continue is True
+    mock_context.ui.render_info.assert_called_with(
+        "A biblioteca está vazia. Use '/scan <caminho>' para adicionar músicas."
+    )
+
+def test_dispatch_list_invalid_page_size(mock_context):
+    registry = CommandRegistry()
+    mock_context.registry = registry
+
+    should_continue = registry.dispatch("/list abc", mock_context)
+    assert should_continue is True
+    mock_context.ui.render_error.assert_called_with(
+        "O tamanho da página deve ser um número inteiro positivo."
+    )
+
+    should_continue_zero = registry.dispatch("/list 0", mock_context)
+    assert should_continue_zero is True
+
+def test_dispatch_list_single_page(mock_context):
+    registry = CommandRegistry()
+    mock_context.registry = registry
+    mock_context.db.count.return_value = 2
+    mock_tracks = [MagicMock(title="T1", file_path="C:/1.mp3"), MagicMock(title="T2", file_path="C:/2.mp3")]
+    mock_context.db.get_all_tracks.return_value = mock_tracks
+
+    should_continue = registry.dispatch("/list", mock_context)
+    assert should_continue is True
+    mock_context.ui.render_track_page.assert_called_once_with(mock_tracks, 1, 1, 2, start_idx=1)
+    mock_context.ui.render_info.assert_called_with("Fim da listagem.")
+
+def test_dispatch_list_multiple_pages_with_continue(mock_context):
+    registry = CommandRegistry()
+    mock_context.registry = registry
+    mock_context.db.count.return_value = 3
+    t1 = MagicMock(title="T1", file_path="C:/1.mp3")
+    t2 = MagicMock(title="T2", file_path="C:/2.mp3")
+    t3 = MagicMock(title="T3", file_path="C:/3.mp3")
+
+    mock_context.db.get_all_tracks.side_effect = [
+        [t1, t2],
+        [t3]
+    ]
+    mock_context.ui.prompt_pagination.return_value = ""  # Usuário aperta Enter
+
+    should_continue = registry.dispatch("/list 2", mock_context)
+    assert should_continue is True
+    assert mock_context.ui.render_track_page.call_count == 2
+    mock_context.ui.prompt_pagination.assert_called_once()
+    mock_context.ui.render_info.assert_called_with("Fim da listagem.")
+
+def test_dispatch_list_multiple_pages_with_cancel(mock_context):
+    registry = CommandRegistry()
+    mock_context.registry = registry
+    mock_context.db.count.return_value = 4
+    t1 = MagicMock(title="T1", file_path="C:/1.mp3")
+    t2 = MagicMock(title="T2", file_path="C:/2.mp3")
+    mock_context.db.get_all_tracks.return_value = [t1, t2]
+    mock_context.ui.prompt_pagination.return_value = "q"  # Usuário cancela
+
+    should_continue = registry.dispatch("/list 2", mock_context)
+    assert should_continue is True
+    assert mock_context.ui.render_track_page.call_count == 1
+    mock_context.ui.render_info.assert_called_with("Listagem cancelada pelo usuário.")
+
+def test_dispatch_list_with_type_error_fallback(mock_context):
+    registry = CommandRegistry()
+    mock_context.registry = registry
+    mock_context.db.count.return_value = 2
+    t1 = MagicMock(title="T1", file_path="C:/1.mp3")
+    t2 = MagicMock(title="T2", file_path="C:/2.mp3")
+
+    # Simula repositório sem suporte aos argumentos limit/offset
+    def mock_get_all_tracks(**kwargs):
+        if kwargs:
+            raise TypeError("unexpected keyword argument")
+        return [t1, t2]
+
+    mock_context.db.get_all_tracks.side_effect = mock_get_all_tracks
+    should_continue = registry.dispatch("/list", mock_context)
+    assert should_continue is True
+    mock_context.ui.render_track_page.assert_called_once()

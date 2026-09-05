@@ -95,6 +95,58 @@ class SearchCommand(Command):
             print(f"  {i}. {t.artist} - {t.title} [{t.genre}] ({t.bpm:.0f} BPM)")
         return True
 
+class ListCommand(Command):
+    """Lista as músicas presentes na biblioteca com paginação e opção de cancelamento."""
+
+    DEFAULT_PAGE_SIZE = 20
+
+    def __init__(self) -> None:
+        super().__init__(
+            name="/list",
+            description="Lista as músicas da biblioteca com paginação (padrão: 20): /list [tamanho_pagina]"
+        )
+
+    def execute(self, args: List[str], ctx: CommandContext) -> bool:
+        page_size = self.DEFAULT_PAGE_SIZE
+        if args:
+            try:
+                parsed_size = int(args[0])
+                if parsed_size > 0:
+                    page_size = parsed_size
+                else:
+                    ctx.ui.render_error("O tamanho da página deve ser um número inteiro positivo.")
+                    return True
+            except ValueError:
+                ctx.ui.render_error("O tamanho da página deve ser um número inteiro positivo.")
+                return True
+
+        total_tracks = ctx.db.count()
+        if total_tracks == 0:
+            ctx.ui.render_info("A biblioteca está vazia. Use '/scan <caminho>' para adicionar músicas.")
+            return True
+
+        total_pages = (total_tracks + page_size - 1) // page_size
+
+        for page in range(1, total_pages + 1):
+            offset = (page - 1) * page_size
+            try:
+                tracks = ctx.db.get_all_tracks(limit=page_size, offset=offset)
+            except TypeError:
+                all_tracks = ctx.db.get_all_tracks()
+                tracks = all_tracks[offset : offset + page_size]
+
+            start_idx = offset + 1
+            ctx.ui.render_track_page(tracks, page, total_pages, total_tracks, start_idx=start_idx)
+
+            if page < total_pages:
+                action = ctx.ui.prompt_pagination()
+                if action in ("q", "quit", "c", "cancel", "sair", "cancelar"):
+                    ctx.ui.render_info("Listagem cancelada pelo usuário.")
+                    return True
+
+        ctx.ui.render_info("Fim da listagem.")
+        return True
+
 class ScanCommand(Command):
     """Executa a ferramenta de escaneamento diretamente pelo terminal sem acionar a LLM."""
 
@@ -162,6 +214,7 @@ class CommandRegistry:
         defaults = [
             HelpCommand(),
             StatusCommand(),
+            ListCommand(),
             ScanCommand(),
             SearchCommand(),
             ClearCommand(),
