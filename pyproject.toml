@@ -15,7 +15,7 @@ build-backend = "setuptools.build_meta"
 name = "musicmatch"
 version = "0.1.0"
 description = "Gerenciador, reprodutor e curador de música IA-Native para grandes bibliotecas locais."
-readme = "PROJECT_CONTEXT.md"
+readme = "README.md"
 requires-python = ">=3.11"
 authors = [
     { name = "MusicMatch Team" }
