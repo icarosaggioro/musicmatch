@@ -12,7 +12,7 @@ class Settings:
     """Configurações globais da aplicação."""
     
     GEMINI_API_KEY: str = os.getenv("GEMINI_API_KEY", "")
-    GEMINI_MODEL: str = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
+    GEMINI_MODEL: str = os.getenv("GEMINI_MODEL", "gemini-3.6-flash")
     LOG_LEVEL: str = os.getenv("LOG_LEVEL", "INFO")
 
 settings = Settings()

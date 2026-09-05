@@ -2,7 +2,7 @@
 
 import time
 from typing import Any, Dict
-from musicmatch.domain.models import Track
+from musicmatch.domain.models import ScanResult, Track
 from musicmatch.storage.mock_db import db
 
 def scan_library(path: str, recursive: bool = True) -> Dict[str, Any]:
@@ -16,7 +16,8 @@ def scan_library(path: str, recursive: bool = True) -> Dict[str, Any]:
         recursive: Se True, percorre todas as subpastas recursivamente. Padrão é True.
 
     Returns:
-        Um dicionário contendo o status da operação, total de faixas indexadas e uma amostra dos títulos adicionados.
+        Um dicionário serializado do modelo Pydantic ScanResult contendo o status da operação,
+        total de faixas indexadas e uma amostra dos títulos adicionados.
     """
     start_time = time.perf_counter()
     
@@ -94,14 +95,17 @@ def scan_library(path: str, recursive: bool = True) -> Dict[str, Any]:
     
     elapsed_ms = round((time.perf_counter() - start_time) * 1000, 2)
     
-    return {
-        "status": "success",
-        "message": f"Varredura concluída com sucesso no diretório '{path}'.",
-        "path": path,
-        "recursive": recursive,
-        "total_files_scanned": len(synthetic_tracks),
-        "tracks_indexed": len(synthetic_tracks),
-        "sample_tracks": [f"{t.artist} - {t.title} ({t.genre})" for t in synthetic_tracks],
-        "duration_ms": elapsed_ms,
-        "database_total_tracks": db.count()
-    }
+    # Cria a instância validada pelo Pydantic antes de serializar para o contrato da ferramenta
+    result = ScanResult(
+        status="success",
+        message=f"Varredura concluída com sucesso no diretório '{path}'.",
+        path=path,
+        recursive=recursive,
+        total_files_scanned=len(synthetic_tracks),
+        tracks_indexed=len(synthetic_tracks),
+        sample_tracks=[f"{t.artist} - {t.title} ({t.genre})" for t in synthetic_tracks],
+        duration_ms=elapsed_ms,
+        database_total_tracks=db.count()
+    )
+    
+    return result.model_dump()

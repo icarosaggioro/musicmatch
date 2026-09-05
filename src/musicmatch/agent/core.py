@@ -50,10 +50,15 @@ class SingleTurnAgent:
         log("INPUT", f"Instrução do Usuário: '{user_prompt}'")
 
         # Configuração da chamada com tools e system instruction
+        # Desativa o AFC (Automatic Function Calling) automático do SDK para manter
+        # o controle manual do ciclo ReAct e os logs de observabilidade pedagógicos.
         config = types.GenerateContentConfig(
             system_instruction=SYSTEM_INSTRUCTION,
             temperature=0.2,
-            tools=self.tools_list
+            tools=self.tools_list,
+            automatic_function_calling=types.AutomaticFunctionCallingConfig(
+                disable=True
+            ),
         )
 
         # Passo 1: Primeira invocação do modelo
@@ -107,7 +112,10 @@ class SingleTurnAgent:
                 contents=conversation_history,
                 config=types.GenerateContentConfig(
                     system_instruction=SYSTEM_INSTRUCTION,
-                    temperature=0.3
+                    temperature=0.3,
+                    automatic_function_calling=types.AutomaticFunctionCallingConfig(
+                        disable=True
+                    ),
                 )
             )
             
