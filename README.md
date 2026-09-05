@@ -7,7 +7,7 @@
 [![Tests](https://img.shields.io/badge/tests-37%20passed-brightgreen.svg)]()
 [![Coverage](https://img.shields.io/badge/coverage-99%25-success.svg)]()
 [![Architecture](https://img.shields.io/badge/architecture-Harness%20%7C%20Pydantic%20V2-orange.svg)]()
-[![License](https://img.shields.io/badge/license-MIT-informational.svg)]()
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 ---
 
@@ -193,4 +193,5 @@ Todas as decisões arquiteturais e notas de pesquisa estão registradas e versio
 
 ## 📄 Licença
 
-Este projeto é desenvolvido para fins didáticos e laboratoriais sob a licença MIT.
+Este projeto está licenciado sob os termos da licença **MIT** — consulte o arquivo [LICENSE](LICENSE) para detalhes completos.  
+Copyright (c) 2026 Ícaro Saggioro.
