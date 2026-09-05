@@ -12,3 +12,5 @@ def test_agent_tool_registry():
     agent = SingleTurnAgent(api_key="fake_key_for_testing")
     assert "scan_library" in agent.tool_map
     assert callable(agent.tool_map["scan_library"])
+    assert "search_tracks" in agent.tool_map
+    assert callable(agent.tool_map["search_tracks"])

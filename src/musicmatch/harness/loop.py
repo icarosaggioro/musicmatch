@@ -20,7 +20,7 @@ from musicmatch.agent.core import SingleTurnAgent
 from musicmatch.commands.base import CommandContext
 from musicmatch.commands.registry import CommandRegistry
 from musicmatch.config import settings
-from musicmatch.storage.mock_db import db
+from musicmatch.storage.sqlite_repo import SQLiteTrackRepository
 from musicmatch.ui.renderer import ConsoleUI
 
 class Harness:
@@ -35,7 +35,7 @@ class Harness:
     ) -> None:
         self.ui = ui or ConsoleUI()
         self.registry = registry or CommandRegistry()
-        self.db = database or db
+        self.db = database or SQLiteTrackRepository()
         
         # O agente pode ser injetado externamente (ex: em testes) ou instanciado
         if agent is not None:

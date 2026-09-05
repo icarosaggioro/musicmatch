@@ -5,7 +5,7 @@ from google import genai
 from google.genai import types
 
 from musicmatch.config import settings
-from musicmatch.tools.scanner import scan_library
+from musicmatch.tools import scan_library, search_tracks
 
 SYSTEM_INSTRUCTION = """
 Você é o Agente Inteligente do MusicMatch, um assistente especialista em música,
@@ -14,8 +14,9 @@ gerenciamento de bibliotecas de áudio local (MP3/FLAC), curadoria acústica e p
 Diretrizes:
 1. Seja prestativo, claro, técnico quando apropriado e conciso.
 2. Quando o usuário solicitar indexar, escanear ou carregar músicas de um diretório/pasta, use a ferramenta 'scan_library'.
-3. Se a solicitação for uma dúvida conceitual sobre áudio, DSP ou engenharia de som, responda diretamente sem chamar ferramentas desnecessárias.
-4. Após o retorno de uma ferramenta, sintetize o resultado de forma amigável para o usuário.
+3. Quando o usuário perguntar quais faixas existem no acervo, pedir recomendações por gênero, artista, humor (mood) ou faixa de BPM, use a ferramenta 'search_tracks'.
+4. Se a solicitação for uma dúvida conceitual sobre áudio, DSP ou engenharia de som, responda diretamente sem chamar ferramentas desnecessárias.
+5. Após o retorno de uma ferramenta, sintetize o resultado de forma amigável para o usuário.
 """
 
 class SingleTurnAgent:
@@ -32,9 +33,10 @@ class SingleTurnAgent:
         self.client = genai.Client(api_key=self.api_key)
         
         # Mapeamento de ferramentas disponíveis
-        self.tools_list: List[Callable[..., Any]] = [scan_library]
+        self.tools_list: List[Callable[..., Any]] = [scan_library, search_tracks]
         self.tool_map: Dict[str, Callable[..., Any]] = {
-            "scan_library": scan_library
+            "scan_library": scan_library,
+            "search_tracks": search_tracks,
         }
 
     def run(self, user_prompt: str, log_callback: Optional[Callable[[str, str], None]] = None) -> str:
@@ -80,16 +82,26 @@ class SingleTurnAgent:
                 log("TOOL_CALL", f"Ferramenta Solicitada: '{func_name}' com argumentos {func_args}")
 
                 if func_name in self.tool_map:
-                    # Executa a função Python correspondente
-                    tool_result = self.tool_map[func_name](**func_args)
-                    log("OBSERVATION", f"Retorno da Ferramenta ({func_name}): {tool_result}")
-                    
-                    function_response_parts.append(
-                        types.Part.from_function_response(
-                            name=func_name,
-                            response={"result": tool_result}
+                    try:
+                        # Executa a função Python correspondente
+                        tool_result = self.tool_map[func_name](**func_args)
+                        log("OBSERVATION", f"Retorno da Ferramenta ({func_name}): {tool_result}")
+                        
+                        function_response_parts.append(
+                            types.Part.from_function_response(
+                                name=func_name,
+                                response={"result": tool_result}
+                            )
                         )
-                    )
+                    except Exception as e:
+                        error_msg = f"Falha ao executar ferramenta '{func_name}': {str(e)}"
+                        log("ERROR", error_msg)
+                        function_response_parts.append(
+                            types.Part.from_function_response(
+                                name=func_name,
+                                response={"error": error_msg}
+                            )
+                        )
                 else:
                     error_msg = f"Erro: Ferramenta '{func_name}' não encontrada no catálogo."
                     log("ERROR", error_msg)

@@ -57,8 +57,10 @@ The project follows a didactic, incremental **Walking Skeleton** strategy: estab
 - **Language & Runtime**: Python 3.14.6 (compatible with Python 3.11+)
 - **AI SDK**: `google-genai` (Gemini 3.6 Flash with Function Calling and Structured Outputs)
 - **Domain Modeling & Contracts**: `pydantic` V2 (strict runtime data integrity and automatic JSON Schema generation)
+- **Persistence & Search Engine**: Embedded SQLite with **FTS5** (*Full-Text Search*) inverted index, external content synchronization triggers, and BM25 relevance scoring
+- **Business Service Layer**: `LibraryService` encapsulating audio library use cases, metadata ingestion, and hybrid search
 - **Harness & Interface**: Decoupled Event Loop with Command Pattern and `ConsoleUI` renderer
-- **Testing & Quality Assurance**: `pytest`, `pytest-asyncio`, `pytest-cov`, `coverage` (**99% code coverage**)
+- **Testing & Quality Assurance**: `pytest`, `pytest-asyncio`, `pytest-cov`, `coverage` (**97% code coverage**)
 - **Native High-Performance DSP Engine (Roadmap)**: Rust compiled via `PyO3` and `Maturin`
 
 ---
@@ -116,7 +118,8 @@ MusicMatch features fast administrative commands prefixed with `/` that execute 
 | Command | Description |
 | :--- | :--- |
 | `/help` | Displays the complete list of commands and usage instructions. |
-| `/status` | Shows the active Gemini model, total indexed tracks, and storage info. |
+| `/status` | Shows the active Gemini model, total indexed tracks, and SQLite storage stats. |
+| `/search <query>` | Performs instantaneous full-text search across the library using SQLite FTS5. |
 | `/scan <path>` | Triggers the audio scanner directly (e.g., `/scan C:/Music`). |
 | `/clear` | Clears the terminal screen. |
 | `/exit` | Exits the application (*ergonomic aliases*: `sair`, `exit`, `quit`, `q`). |
@@ -130,6 +133,12 @@ Any user input that does not start with `/` is automatically routed to the AI Ag
   ```
   *The agent detects user intent, invokes `scan_library`, validates ingested tracks through Pydantic, populates the database, and synthesizes a friendly summary.*
 
+- **Fast Full-Text & Hybrid Search**:
+  ```text
+  MusicMatch > Find any Queen tracks with BPM above 110
+  ```
+  *The agent invokes the `search_tracks` tool, querying the local SQLite FTS5 index and returning exact domain matches without hallucination.*
+
 - **Direct Audio & DSP Queries**:
   ```text
   MusicMatch > What is LUFS and how is the EBU R128 recommendation applied in audio normalization?
@@ -141,7 +150,7 @@ Any user input that does not start with `/` is automatically routed to the AI Ag
 
 ## 🧪 Automated Testing & Coverage
 
-The project includes **37 automated unit tests** covering the agent ReAct loop with deterministic mocks (zero API token cost), Pydantic runtime validations, harness routing, and UI rendering:
+The project includes **63 automated unit tests** covering the agent ReAct loop with deterministic mocks (zero API token cost), Pydantic runtime validations, harness routing, SQLite FTS5 triggers and search ranking, library service use cases, and UI rendering:
 
 ```powershell
 # Run all tests
@@ -151,26 +160,33 @@ pytest
 pytest --cov=musicmatch --cov-report=term-missing
 ```
 
-### Current Coverage Report: **99%**
+### Current Coverage Report: **97%**
 ```text
-Name                                  Stmts   Miss  Cover
----------------------------------------------------------
-src\musicmatch\__init__.py                1      0   100%
-src\musicmatch\agent\core.py             44      0   100%
-src\musicmatch\cli.py                    10      1    90%
-src\musicmatch\commands\__init__.py       3      0   100%
-src\musicmatch\commands\base.py          13      1    92%
-src\musicmatch\commands\registry.py      84      0   100%
-src\musicmatch\config.py                 10      0   100%
-src\musicmatch\domain\models.py          24      0   100%
-src\musicmatch\harness\__init__.py        2      0   100%
-src\musicmatch\harness\loop.py           37      0   100%
-src\musicmatch\storage\mock_db.py        20      0   100%
-src\musicmatch\tools\scanner.py          11      0   100%
-src\musicmatch\ui\__init__.py             2      0   100%
-src\musicmatch\ui\renderer.py            53      0   100%
----------------------------------------------------------
-TOTAL                                   314      2    99%
+Name                                    Stmts   Miss  Cover
+-----------------------------------------------------------
+src\musicmatch\__init__.py                  1      0   100%
+src\musicmatch\agent\core.py               49      4    92%
+src\musicmatch\cli.py                      10      1    90%
+src\musicmatch\commands\__init__.py         3      0   100%
+src\musicmatch\commands\base.py            13      1    92%
+src\musicmatch\commands\registry.py       113      1    99%
+src\musicmatch\config.py                   11      0   100%
+src\musicmatch\domain\models.py            24      0   100%
+src\musicmatch\harness\__init__.py          2      0   100%
+src\musicmatch\harness\loop.py             37      0   100%
+src\musicmatch\services\__init__.py         2      0   100%
+src\musicmatch\services\library.py         37      1    97%
+src\musicmatch\storage\__init__.py          3      0   100%
+src\musicmatch\storage\mock_db.py          20      3    85%
+src\musicmatch\storage\schema.py            6      0   100%
+src\musicmatch\storage\sqlite_repo.py     137      5    96%
+src\musicmatch\tools\__init__.py            3      0   100%
+src\musicmatch\tools\scanner.py             6      0   100%
+src\musicmatch\tools\search.py              6      0   100%
+src\musicmatch\ui\__init__.py               2      0   100%
+src\musicmatch\ui\renderer.py              53      0   100%
+-----------------------------------------------------------
+TOTAL                                     538     16    97%
 ```
 
 ---
@@ -188,6 +204,7 @@ All architectural decisions and research references are persisted and versioned 
   - [ADR 0004](docs/adr/0004-data-lifecycle-and-first-tool-selection.md): Data Lifecycle and First Tool Selection (`scan_library`).
   - [ADR 0005](docs/adr/0005-structured-cli-harness-and-commands.md): Structured CLI Harness with Command Registry and View Separation.
   - [ADR 0006](docs/adr/0006-domain-modeling-and-runtime-validation-with-pydantic.md): Domain Modeling and Runtime Validation with Pydantic.
+  - [ADR 0007](docs/adr/0007-sqlite-persistence-with-fts5-and-service-layer.md): SQLite Persistence with FTS5 and Domain Service Layer.
 
 ---
 
@@ -195,3 +212,4 @@ All architectural decisions and research references are persisted and versioned 
 
 This project is licensed under the terms of the **MIT License** — see the [LICENSE](LICENSE) file for details.  
 Copyright (c) 2026 Ícaro Saggioro.
+

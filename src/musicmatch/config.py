@@ -14,5 +14,6 @@ class Settings:
     GEMINI_API_KEY: str = os.getenv("GEMINI_API_KEY", "")
     GEMINI_MODEL: str = os.getenv("GEMINI_MODEL", "gemini-3.6-flash")
     LOG_LEVEL: str = os.getenv("LOG_LEVEL", "INFO")
+    DATABASE_PATH: str = os.getenv("DATABASE_PATH", str(PROJECT_ROOT / "data" / "musicmatch.db"))
 
 settings = Settings()

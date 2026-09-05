@@ -26,6 +26,7 @@ def test_command_registry_defaults():
     assert "/help" in names
     assert "/status" in names
     assert "/scan" in names
+    assert "/search" in names
     assert "/clear" in names
     assert "/exit" in names
 
@@ -61,6 +62,11 @@ def test_dispatch_help(mock_context):
 def test_dispatch_status(mock_context):
     registry = CommandRegistry()
     mock_context.registry = registry
+    mock_context.db.get_stats.return_value = {
+        "total_duration_hours": 2.5,
+        "avg_bpm": 128.0,
+        "db_size_kb": 64.0,
+    }
     
     should_continue = registry.dispatch("/status", mock_context)
     assert should_continue is True
@@ -68,6 +74,9 @@ def test_dispatch_status(mock_context):
     status_dict = mock_context.ui.render_status.call_args[0][0]
     assert status_dict["Modelo Gemini Ativo"] == "gemini-3.6-flash"
     assert "10 faixa(s)" in status_dict["Total de Faixas no Banco"]
+    assert "2.5 horas" in status_dict["Duração Total"]
+    assert "128.0" in status_dict["BPM Médio"]
+    assert "64.0 KB" in status_dict["Tamanho do Arquivo .db"]
 
 def test_dispatch_scan_with_argument(mock_context, monkeypatch):
     registry = CommandRegistry()
@@ -131,3 +140,35 @@ def test_dispatch_empty_input(mock_context):
     registry = CommandRegistry()
     mock_context.registry = registry
     assert registry.dispatch("", mock_context) is True
+
+def test_dispatch_search_missing_argument(mock_context):
+    registry = CommandRegistry()
+    mock_context.registry = registry
+    should_continue = registry.dispatch("/search", mock_context)
+    assert should_continue is True
+    mock_context.ui.render_error.assert_called_once_with(
+        "Uso incorreto. Especifique o termo de busca: /search <termo>"
+    )
+
+def test_dispatch_search_with_results(mock_context):
+    registry = CommandRegistry()
+    mock_context.registry = registry
+    mock_track = MagicMock()
+    mock_track.artist = "Queen"
+    mock_track.title = "Bohemian Rhapsody"
+    mock_track.genre = "Rock"
+    mock_track.bpm = 72.0
+    mock_context.db.search_fulltext.return_value = [mock_track]
+
+    should_continue = registry.dispatch("/search Queen", mock_context)
+    assert should_continue is True
+    mock_context.ui.render_success.assert_called_once()
+
+def test_dispatch_search_no_results(mock_context):
+    registry = CommandRegistry()
+    mock_context.registry = registry
+    mock_context.db.search_fulltext.return_value = []
+
+    should_continue = registry.dispatch("/search Desconhecido", mock_context)
+    assert should_continue is True
+    mock_context.ui.render_info.assert_called()

@@ -42,14 +42,57 @@ class StatusCommand(Command):
         )
 
     def execute(self, args: List[str], ctx: CommandContext) -> bool:
+        db_type = type(ctx.db).__name__
         status_info = {
             "Modelo Gemini Ativo": ctx.agent.model_name,
             "Total de Faixas no Banco": f"{ctx.db.count()} faixa(s)",
             "Nível de Log": settings.LOG_LEVEL,
-            "Camada de Armazenamento": "MockDatabase (Em Memória)",
-            "Ambiente": "Python 3.14 (Walking Skeleton)",
+            "Camada de Armazenamento": f"{db_type} ({'FTS5 Ativo' if 'SQLite' in db_type else 'Memória'})",
+            "Arquivo de Banco de Dados": getattr(ctx.db, "db_path", "Em Memória"),
+            "Ambiente": "Python 3.14 (Clean Architecture + DDD)",
         }
+        if hasattr(ctx.db, "get_stats"):
+            stats = ctx.db.get_stats()
+            if isinstance(stats, dict):
+                status_info["Duração Total"] = f"{stats.get('total_duration_hours', 0)} horas"
+                status_info["BPM Médio"] = f"{stats.get('avg_bpm', 0)}"
+                db_size = stats.get("db_size_kb", 0)
+                if isinstance(db_size, (int, float)) and db_size > 0:
+                    status_info["Tamanho do Arquivo .db"] = f"{db_size} KB"
+
         ctx.ui.render_status(status_info)
+        return True
+
+class SearchCommand(Command):
+    """Executa busca textual instantânea na biblioteca via FTS5 sem acionar a LLM."""
+
+    def __init__(self) -> None:
+        super().__init__(
+            name="/search",
+            description="Busca faixas por texto ou metadados via FTS5: /search <termo>"
+        )
+
+    def execute(self, args: List[str], ctx: CommandContext) -> bool:
+        if not args:
+            ctx.ui.render_error("Uso incorreto. Especifique o termo de busca: /search <termo>")
+            ctx.ui.render_info("Exemplo: /search Queen  ou  /search Bohemian")
+            return True
+
+        query = " ".join(args)
+        ctx.ui.render_info(f"Buscando por '{query}' no índice FTS5...")
+        
+        if hasattr(ctx.db, "search_fulltext"):
+            tracks = ctx.db.search_fulltext(query=query, limit=10)
+        else:
+            tracks = [t for t in ctx.db.get_all_tracks() if query.lower() in t.title.lower() or query.lower() in t.artist.lower()]
+
+        if not tracks:
+            ctx.ui.render_info(f"Nenhuma faixa encontrada para '{query}'.")
+            return True
+
+        ctx.ui.render_success(f"{len(tracks)} faixa(s) encontrada(s):")
+        for i, t in enumerate(tracks, 1):
+            print(f"  {i}. {t.artist} - {t.title} [{t.genre}] ({t.bpm:.0f} BPM)")
         return True
 
 class ScanCommand(Command):
@@ -120,6 +163,7 @@ class CommandRegistry:
             HelpCommand(),
             StatusCommand(),
             ScanCommand(),
+            SearchCommand(),
             ClearCommand(),
             ExitCommand(),
         ]
