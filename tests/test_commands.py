@@ -111,3 +111,23 @@ def test_dispatch_unknown_command(mock_context):
     should_continue = registry.dispatch("/comando_inexistente", mock_context)
     assert should_continue is True
     mock_context.ui.render_error.assert_called_once()
+
+def test_dispatch_clear(mock_context):
+    registry = CommandRegistry()
+    mock_context.registry = registry
+    should_continue = registry.dispatch("/clear", mock_context)
+    assert should_continue is True
+    mock_context.ui.clear_screen.assert_called_once()
+    mock_context.ui.render_banner.assert_called_once_with(mock_context.agent.model_name)
+
+def test_dispatch_unclosed_quotes_fallback(mock_context):
+    registry = CommandRegistry()
+    mock_context.registry = registry
+    # String com aspas não fechadas dispara ValueError no shlex, caindo no split normal
+    should_continue = registry.dispatch('/scan "C:/Musica_Sem_Fechar_Aspas', mock_context)
+    assert should_continue is True
+
+def test_dispatch_empty_input(mock_context):
+    registry = CommandRegistry()
+    mock_context.registry = registry
+    assert registry.dispatch("", mock_context) is True

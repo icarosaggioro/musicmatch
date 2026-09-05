@@ -79,3 +79,31 @@ def test_harness_error_boundary_recovers_from_exception():
     # Verifica que o erro foi capturado pela fronteira e exibido sem quebrar o REPL
     mock_ui.render_error.assert_called_once()
     assert "Falha de conexão com a API" in mock_ui.render_error.call_args[0][0]
+
+def test_harness_ignores_empty_inputs():
+    """Garante que apertar Enter em branco não quebra o loop nem chama o agente."""
+    mock_agent = MagicMock()
+    mock_agent.model_name = "gemini-3.6-flash"
+    mock_ui = MagicMock()
+    mock_registry = MagicMock()
+    mock_registry.is_command.return_value = True
+    mock_registry.dispatch.return_value = False
+
+    harness = Harness(agent=mock_agent, ui=mock_ui, registry=mock_registry)
+
+    # Duas entradas vazias seguidas do comando de saída
+    inputs = ["", "   ", "/exit"]
+    with patch("builtins.input", side_effect=inputs):
+        harness.start()
+
+    mock_agent.run.assert_not_called()
+    mock_registry.dispatch.assert_called_once_with("/exit", harness.ctx)
+
+def test_harness_initialization_error_when_no_agent():
+    """Testa a captura de erro quando a instanciação do SingleTurnAgent padrão falha."""
+    mock_ui = MagicMock()
+    with patch("musicmatch.harness.loop.SingleTurnAgent", side_effect=ValueError("Chave ausente")):
+        with pytest.raises(ValueError, match="Chave ausente"):
+            Harness(agent=None, ui=mock_ui)
+        mock_ui.render_error.assert_called_once()
+        mock_ui.render_info.assert_called_once()
