@@ -95,3 +95,18 @@ Este documento serve como mapa de referência rápida para todos os tópicos con
 * **Comunicação por Eventos Assíncronos**: O Rust dispara eventos assíncronos (notificações/callbacks de progresso) para o Python, mantendo a thread principal e a UI 100% responsivas.
 * **Resiliência e Auditoria**: Rust isola erros de decodificação e arquivos corrompidos sem usar `panic!`, gravando relatórios de integridade para o Agente Auditor do Antigravity processar.
 * **Build & Distribuição**: Uso do `Maturin` para desenvolvimento simplificado (`maturin develop`) e geração de binários pré-compilados (.pyd) transparentes para o usuário final.
+
+---
+
+## 8. Persistência & Escalabilidade em Larga Escala (1.000.000+ Faixas)
+* **Estudo Comparativo Detalhado**:
+  * Documento completo em [`docs/DATABASE_SCALING_SQLITE_VS_POSTGRESQL.md`](file:///c:/WebApps/musicmatch/docs/DATABASE_SCALING_SQLITE_VS_POSTGRESQL.md).
+  * Registro de Decisão Arquitetural: [ADR 0008 - Database Scaling Strategy and PostgreSQL Migration Roadmap](file:///c:/WebApps/musicmatch/docs/adr/0008-database-scaling-and-postgresql-migration-roadmap.md).
+* **Diretrizes Consolidadas**:
+  * **Fase Atual (Desenvolvimento & Médio Porte)**: Manutenção do **SQLite com FTS5** embarcado para agilidade, testes unitários em memória (`:memory:`) e distribuição com zero infraestrutura.
+  * **Fase Avançada / Produção em Escala (1M Faixas)**: Migração planejada para **PostgreSQL 16+** com extensões:
+    * **`pgvector`**: Índices HNSW com vetores em `halfvec` (16-bit float) e *Iterative Index Scan* para mesclar filtros acústicos rígidos com busca semântica do LLM sem exaustão de nós.
+    * **`pg_trgm`**: Índices GIN para busca fonética e difusa (*fuzzy*) por artista e gênero.
+    * **Paralelismo de CPU**: Execução multi-threaded de queries com fórmulas matemáticas de similaridade (BPM harmônico, decaimento temporal gaussiano).
+    * **Concorrência Plena (MVCC)**: Ingestão massiva em Rust (`tokio-postgres` via `COPY`) sem locks com leitores ou agentes.
+

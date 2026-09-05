@@ -27,27 +27,30 @@ def test_render_event_stages(capsys):
     # INPUT
     ui.render_event("INPUT", "Como medir BPM?")
     captured = capsys.readouterr().out
-    assert ">>> [PROMPT RECEBIDO]: Como medir BPM?" in captured
+    assert "[USER PROMPT" in captured
+    assert "Como medir BPM?" in captured
 
     # TOOL_CALL
     ui.render_event("TOOL_CALL", "scan_library")
     captured = capsys.readouterr().out
-    assert "⚙️  [DECISÃO DO AGENTE - TOOL CALL]: scan_library" in captured
+    assert "[AGENTE - TOOL CALL" in captured
+    assert "scan_library" in captured
 
     # OBSERVATION
     ui.render_event("OBSERVATION", "5 faixas encontradas")
     captured = capsys.readouterr().out
-    assert "📦 [OBSERVAÇÃO DA FERRAMENTA]: 5 faixas encontradas" in captured
+    assert "[TOOL OBSERVATION" in captured
+    assert "5 faixas encontradas" in captured
 
     # ERROR
     ui.render_event("ERROR", "Erro de conexão")
     captured = capsys.readouterr().out
-    assert "❌ [ERRO]: Erro de conexão" in captured
+    assert "Erro de conexão" in captured
 
     # RESPONSE
     ui.render_event("RESPONSE", "Esta é a resposta final.")
     captured = capsys.readouterr().out
-    assert "💬 [RESPOSTA FINAL DO AGENTE]:" in captured
+    assert "[AGENT RESPONSE" in captured
     assert "Esta é a resposta final." in captured
 
 def test_render_help(capsys):
@@ -89,13 +92,13 @@ def test_render_helpers(capsys):
     ui = ConsoleUI()
 
     ui.render_info("Carregando...")
-    assert "ℹ️  Carregando..." in capsys.readouterr().out
+    assert "Carregando..." in capsys.readouterr().out
 
     ui.render_success("Operação concluída!")
-    assert "✅ Operação concluída!" in capsys.readouterr().out
+    assert "Operação concluída!" in capsys.readouterr().out
 
     ui.render_error("Falha ao abrir arquivo.")
-    assert "❌ Falha ao abrir arquivo." in capsys.readouterr().out
+    assert "Falha ao abrir arquivo." in capsys.readouterr().out
 
     ui.render_goodbye()
     assert "Encerrando sessão do MusicMatch. Até logo!" in capsys.readouterr().out

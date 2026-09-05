@@ -197,6 +197,7 @@ All architectural decisions and research references are persisted and versioned 
 - [CONTEXT.md](CONTEXT.md): Ubiquitous Language dictionary defining strict domain terminology and terms to avoid.
 - [PROJECT_CONTEXT.md](PROJECT_CONTEXT.md): System guidelines, engineering personas, and architectural roadmap.
 - [docs/RESEARCH_INDEX.md](docs/RESEARCH_INDEX.md): Research map covering MPEG-1/2 Layer III specs, disk I/O strategies, SQLite FTS5/vector indexing, and agent framework comparisons.
+- [docs/DATABASE_SCALING_SQLITE_VS_POSTGRESQL.md](docs/DATABASE_SCALING_SQLITE_VS_POSTGRESQL.md): Comparative benchmark and scaling architecture for 1M+ audio tracks (SQLite vs. PostgreSQL + pgvector).
 - **Architecture Decision Records (ADRs)**:
   - [ADR 0001](docs/adr/0001-top-down-walking-skeleton-with-stubs.md): Top-Down Development via Walking Skeleton and Typed Tool Contracts.
   - [ADR 0002](docs/adr/0002-orchestrator-cli-repl.md): Orchestrator Architecture and CLI Observability REPL.
@@ -205,6 +206,7 @@ All architectural decisions and research references are persisted and versioned 
   - [ADR 0005](docs/adr/0005-structured-cli-harness-and-commands.md): Structured CLI Harness with Command Registry and View Separation.
   - [ADR 0006](docs/adr/0006-domain-modeling-and-runtime-validation-with-pydantic.md): Domain Modeling and Runtime Validation with Pydantic.
   - [ADR 0007](docs/adr/0007-sqlite-persistence-with-fts5-and-service-layer.md): SQLite Persistence with FTS5 and Domain Service Layer.
+  - [ADR 0008](docs/adr/0008-database-scaling-and-postgresql-migration-roadmap.md): Database Scaling Strategy and PostgreSQL Migration Roadmap.
 
 ---
 

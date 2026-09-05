@@ -40,17 +40,16 @@ class ConsoleUI:
             message: Conteúdo textual detalhando a fase.
         """
         if stage == "INPUT":
-            print(f"\n>>> [PROMPT RECEBIDO]: {message}")
+            print(f"\n>>> [USER PROMPT         ]: {message}")
         elif stage == "TOOL_CALL":
-            print(f"⚙️  [DECISÃO DO AGENTE - TOOL CALL]: {message}")
+            print(f"⚙️   [AGENTE - TOOL CALL  ]: {message}")
         elif stage == "OBSERVATION":
-            print(f"📦 [OBSERVAÇÃO DA FERRAMENTA]: {message}")
+            print(f"📦   [TOOL OBSERVATION    ]: {message}")
         elif stage == "ERROR":
-            print(f"❌ [ERRO]: {message}")
+            print(f"❌   [ERROR ERROR ERROR ER]: {message}")
         elif stage == "RESPONSE":
             print("\n" + "=" * 72)
-            print("💬 [RESPOSTA FINAL DO AGENTE]:")
-            print(message)
+            print(f"💬   [AGENT RESPONSE      ]: {message}")
             print("=" * 72 + "\n")
 
     def render_help(self, commands: List[Any]) -> None:
@@ -60,7 +59,7 @@ class ConsoleUI:
         print("-" * 72)
         for cmd in commands:
             aliases_str = f" (aliases: {', '.join(cmd.aliases)})" if cmd.aliases else ""
-            print(f"  {cmd.name:<16} : {cmd.description}{aliases_str}")
+            print(f"  {cmd.name:<8} : {cmd.description}{aliases_str}")
         print("-" * 72)
         print("💡 Dica: Mensagens normais sem barra '/' são enviadas diretamente ao Agente de IA.\n")
 
@@ -75,15 +74,15 @@ class ConsoleUI:
 
     def render_info(self, message: str) -> None:
         """Exibe uma mensagem informativa."""
-        print(f"ℹ️  {message}")
+        print(f"ℹ️    {message}")
 
     def render_success(self, message: str) -> None:
         """Exibe uma mensagem de sucesso."""
-        print(f"✅ {message}")
+        print(f"✅   {message}")
 
     def render_error(self, message: str) -> None:
         """Exibe uma mensagem de erro visualmente destacada."""
-        print(f"❌ {message}")
+        print(f"❌   {message}")
 
     def render_goodbye(self) -> None:
         """Exibe a mensagem de encerramento da sessão."""
