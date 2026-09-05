@@ -14,7 +14,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "musicmatch"
 version = "0.1.0"
-description = "Gerenciador, reprodutor e curador de música IA-Native para grandes bibliotecas locais."
+description = "AI-Native local music management, curation, and DSP playback system for large-scale audio libraries."
 readme = "README.md"
 license = { text = "MIT" }
 requires-python = ">=3.11"
