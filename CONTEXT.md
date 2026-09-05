@@ -43,3 +43,17 @@ _Avoid_: Function, command, plugin
 **Integrity Audit**:
 The process of identifying corrupted files, missing tags, or upscaled audio transcodes, recorded into an audit log for remediation.
 _Avoid_: Error check, bug scan
+
+### Harness & Interface Domain
+
+**Harness**:
+The interactive runtime environment and event loop that hosts the Orchestrator/Agent, routes administrative slash commands, and manages user session boundaries.
+_Avoid_: REPL loop, terminal runner, shell script
+
+**Command**:
+A deterministic system/administrative operation (prefixed with '/') executed directly by the harness without invoking the LLM.
+_Avoid_: Prompt, query, chat message
+
+**Renderer / View**:
+The decoupled presentation layer responsible for formatting observability logs, banners, and diagnostic tables for the user interface.
+_Avoid_: Print statement, logger, console output

@@ -30,8 +30,10 @@ O projeto é concebido e conduzido sob a ótica combinada de duas disciplinas de
   * **Padrão de FFI / Zero GIL Overhead**: O Rust processa os arquivos e grava em lote diretamente no SQLite local, notificando o Python por eventos assíncronos (sem converter centenas de milhares de objetos na memória).
   * **Tratamento Resiliente de Erros**: Arquivos corrompidos ou anômalos são catalogados em tabela de auditoria para inspeção pelo Agente Auditor do Antigravity.
   * **Ponte de Interoperabilidade**: **PyO3 + Maturin** (compilação de extensões nativas C-ABI em Rust consumíveis diretamente como módulos Python sem overhead de IPC).
+* **Validação de Dados & Contratos de Domínio**: **Pydantic V2** (`pydantic.BaseModel`)
+  * Responsável pela integridade e validação em tempo de execução dos metadados de áudio e geração de contratos JSON Schema para as ferramentas do Gemini (`google-genai`).
 * **Banco de Dados Local**: **SQLite** embarcado com **FTS5** (busca textual instantânea) e extensão vetorial (`sqlite-vec`).
-* **Interface Gráfica**: *(Em definição / a ser escolhida em breve)*.
+* **Interface & Harness**: **Harness Interativo** com separação da camada de apresentação (`ConsoleUI`), despachante de comandos do sistema (`CommandRegistry`) e desacoplamento para futura interface gráfica (WebSockets / Desktop).
 
 ---
 
@@ -41,12 +43,16 @@ O projeto é concebido e conduzido sob a ótica combinada de duas disciplinas de
 ┌──────────────────────────────────────────────────────────────────────────────┐
 │                             ARQUITETURA MUSICMATCH                           │
 ├──────────────────────────────────────────────────────────────────────────────┤
-│  [ Interface Gráfica ] (A definir em breve)                                  │
-│                             │ (WebSockets / REST IPC)                        │
+│  [ Interface / Harness ]                                                     │
+│    ├── ConsoleUI (Apresentação, Banners, Observabilidade ReAct desacoplada)  │
+│    ├── Command Registry (Slash Commands: /help, /status, /scan, /exit)       │
+│    └── Event Loop (Roteamento de Comandos vs Linguagem Natural)              │
+│                             │ (Chamada Direta ou WebSockets / REST IPC)      │
 │                             ▼                                                │
 │  [ Camada de Orquestração & IA - Python 3.14.6 ]                             │
 │    ├── Google Antigravity SDK (Agente Principal e Subagentes Autônomos)     │
 │    ├── Google GenAI SDK (Gemini 3.6 Flash / 3.1 Pro Multimodal)              │
+│    ├── Pydantic V2 (Modelos de Domínio, Validação e JSON Schemas)            │
 │    ├── Servidor Local de APIs (FastAPI / WebSockets)                         │
 │    │                                                                         │
 │    │  import musicmatch_core (Ponte PyO3 / Maturin - Dispara Tarefas)        │
