@@ -4,8 +4,8 @@
 > A hands-on, educational engineering laboratory exploring AI Agents, Digital Signal Processing (DSP), and Modern Systems Architecture.
 
 [![Python 3.14+](https://img.shields.io/badge/python-3.14%2B-blue.svg)](https://www.python.org/downloads/)
-[![Tests](https://img.shields.io/badge/tests-37%20passed-brightgreen.svg)]()
-[![Coverage](https://img.shields.io/badge/coverage-99%25-success.svg)]()
+[![Tests](https://img.shields.io/badge/tests-87%20passed-brightgreen.svg)]()
+[![Coverage](https://img.shields.io/badge/coverage-98%25-success.svg)]()
 [![Architecture](https://img.shields.io/badge/architecture-Harness%20%7C%20Pydantic%20V2-orange.svg)]()
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
@@ -55,13 +55,14 @@ The project follows a didactic, incremental **Walking Skeleton** strategy: estab
 ## 🛠️ Technology Stack
 
 - **Language & Runtime**: Python 3.14.6 (compatible with Python 3.11+)
+- **Audio Metadata & Ingestion**: `mediafile` (unified tag parsing across MP3, FLAC, M4A, OGG, WAV) and `pyacoustid` (Chromaprint acoustic fingerprinting)
 - **AI SDK**: `google-genai` (Gemini 3.6 Flash with Function Calling and Structured Outputs)
 - **Domain Modeling & Contracts**: `pydantic` V2 (strict runtime data integrity and automatic JSON Schema generation)
 - **Persistence & Search Engine**: Embedded SQLite with **FTS5** (*Full-Text Search*) inverted index, external content synchronization triggers, and BM25 relevance scoring
-- **Business Service Layer**: `LibraryService` encapsulating audio library use cases, metadata ingestion, and hybrid search
+- **Business Service Layer**: `LibraryService` & `AudioScanner` encapsulating idempotent scanning, stat-cache, and hybrid search
 - **Harness & Interface**: Decoupled Event Loop with Command Pattern and `ConsoleUI` renderer
-- **Testing & Quality Assurance**: `pytest`, `pytest-asyncio`, `pytest-cov`, `coverage` (**98% code coverage**)
-- **Native High-Performance DSP Engine (Roadmap)**: Rust compiled via `PyO3` and `Maturin`
+- **Testing & Quality Assurance**: `pytest`, `pytest-asyncio`, `pytest-cov`, `coverage` (**98% code coverage**, 87 tests)
+- **Native High-Performance DSP Engine (Roadmap)**: Rust compiled via `PyO3` e `Maturin`
 
 ---
 

@@ -46,11 +46,33 @@ class SQLiteTrackRepository:
     def init_db(self) -> None:
         """Executa as instruções DDL para criar tabelas e triggers caso não existam."""
         with self.conn:
+            # 1. Cria a tabela principal se não existir
+            from musicmatch.storage.schema import CREATE_TRACKS_TABLE
+            self.conn.execute(CREATE_TRACKS_TABLE)
+
+            # 2. Migração idempotente: adiciona novas colunas se a tabela já existia no disco
+            cursor = self.conn.execute("PRAGMA table_info(tracks);")
+            existing_cols = {row["name"] for row in cursor.fetchall()}
+            migrations = [
+                ("file_mtime", "REAL"),
+                ("file_size", "INTEGER"),
+                ("status", "TEXT DEFAULT 'AVAILABLE'"),
+                ("year", "INTEGER"),
+                ("track_number", "INTEGER"),
+            ]
+            for col_name, col_type in migrations:
+                if col_name not in existing_cols:
+                    self.conn.execute(f"ALTER TABLE tracks ADD COLUMN {col_name} {col_type};")
+
+            # 3. Executa as demais declarações (índice idx_tracks_status, FTS5 e triggers)
             for statement in ALL_SCHEMA_STATEMENTS:
-                self.conn.execute(statement)
+                if statement != CREATE_TRACKS_TABLE:
+                    self.conn.execute(statement)
+
 
     def _row_to_track(self, row: sqlite3.Row) -> Track:
         """Converte uma linha do SQLite (sqlite3.Row) para uma entidade Pydantic Track."""
+        keys = row.keys() if hasattr(row, "keys") else []
         return Track(
             id=row["id"],
             title=row["title"],
@@ -61,8 +83,13 @@ class SQLiteTrackRepository:
             bitrate_kbps=row["bitrate_kbps"],
             bpm=row["bpm"],
             file_path=row["file_path"],
-            mood=row["mood"],
-            lufs=row["lufs"],
+            mood=row["mood"] if "mood" in keys else None,
+            lufs=row["lufs"] if "lufs" in keys else None,
+            file_mtime=row["file_mtime"] if "file_mtime" in keys else None,
+            file_size=row["file_size"] if "file_size" in keys else None,
+            status=row["status"] if "status" in keys and row["status"] else "AVAILABLE",
+            year=row["year"] if "year" in keys else None,
+            track_number=row["track_number"] if "track_number" in keys else None,
         )
 
     def insert_track(self, track: Track) -> None:
@@ -73,8 +100,9 @@ class SQLiteTrackRepository:
         sql = """
         INSERT INTO tracks (
             id, title, artist, album, genre, duration_seconds,
-            bitrate_kbps, bpm, file_path, mood, lufs
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+            bitrate_kbps, bpm, file_path, mood, lufs,
+            file_mtime, file_size, status, year, track_number
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
         """
         with self.conn:
             self.conn.execute(
@@ -82,7 +110,9 @@ class SQLiteTrackRepository:
                 (
                     track.id, track.title, track.artist, track.album,
                     track.genre, track.duration_seconds, track.bitrate_kbps,
-                    track.bpm, track.file_path, track.mood, track.lufs
+                    track.bpm, track.file_path, track.mood, track.lufs,
+                    track.file_mtime, track.file_size, track.status,
+                    track.year, track.track_number
                 )
             )
 
@@ -94,14 +124,17 @@ class SQLiteTrackRepository:
         sql = """
         INSERT OR REPLACE INTO tracks (
             id, title, artist, album, genre, duration_seconds,
-            bitrate_kbps, bpm, file_path, mood, lufs
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+            bitrate_kbps, bpm, file_path, mood, lufs,
+            file_mtime, file_size, status, year, track_number
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
         """
         data = [
             (
                 t.id, t.title, t.artist, t.album, t.genre,
                 t.duration_seconds, t.bitrate_kbps, t.bpm,
-                t.file_path, t.mood, t.lufs
+                t.file_path, t.mood, t.lufs,
+                t.file_mtime, t.file_size, t.status,
+                t.year, t.track_number
             )
             for t in tracks
         ]
@@ -118,7 +151,9 @@ class SQLiteTrackRepository:
         UPDATE tracks SET
             title = ?, artist = ?, album = ?, genre = ?,
             duration_seconds = ?, bitrate_kbps = ?, bpm = ?,
-            file_path = ?, mood = ?, lufs = ?, updated_at = datetime('now')
+            file_path = ?, mood = ?, lufs = ?,
+            file_mtime = ?, file_size = ?, status = ?,
+            year = ?, track_number = ?, updated_at = datetime('now')
         WHERE id = ?;
         """
         with self.conn:
@@ -127,10 +162,47 @@ class SQLiteTrackRepository:
                 (
                     track.title, track.artist, track.album, track.genre,
                     track.duration_seconds, track.bitrate_kbps, track.bpm,
-                    track.file_path, track.mood, track.lufs, track.id
+                    track.file_path, track.mood, track.lufs,
+                    track.file_mtime, track.file_size, track.status,
+                    track.year, track.track_number, track.id
                 )
             )
             return cursor.rowcount > 0
+
+    def get_tracks_under_path(self, path_prefix: str) -> List[Track]:
+        """Recupera faixas cujo caminho de arquivo esteja contido no diretório ou prefixo informado."""
+        norm_prefix = path_prefix.replace("\\", "/").rstrip("/")
+        pattern_folder = f"{norm_prefix}/%"
+        sql = """
+        SELECT * FROM tracks
+        WHERE replace(file_path, '\\', '/') = ?
+           OR replace(file_path, '\\', '/') LIKE ?;
+        """
+        cursor = self.conn.execute(sql, (norm_prefix, pattern_folder))
+        return [self._row_to_track(row) for row in cursor.fetchall()]
+
+    def mark_missing_by_ids(self, track_ids: List[str]) -> int:
+        """Executa soft-delete marcando faixas como 'MISSING' sem apagar histórico ou métricas."""
+        if not track_ids:
+            return 0
+        placeholders = ",".join("?" for _ in track_ids)
+        sql = f"UPDATE tracks SET status = 'MISSING', updated_at = datetime('now') WHERE id IN ({placeholders});"
+        with self.conn:
+            cursor = self.conn.execute(sql, track_ids)
+            return cursor.rowcount
+
+    def get_stat_cache_map(self, path_prefix: Optional[str] = None) -> Dict[str, Any]:
+        """Mapeia caminhos canônicos para seus dados de stat-cache para re-scans O(1)."""
+        if path_prefix:
+            tracks = self.get_tracks_under_path(path_prefix)
+        else:
+            tracks = self.get_all_tracks()
+        
+        cache_map = {}
+        for t in tracks:
+            canonical = Track.canonicalize_path(t.file_path)
+            cache_map[canonical] = (t.file_mtime, t.file_size, t.status, t.id)
+        return cache_map
 
     def delete_track(self, track_id: str) -> bool:
         """Remove uma faixa pelo seu ID.

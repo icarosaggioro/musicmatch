@@ -85,15 +85,37 @@ def test_dispatch_scan_with_argument(mock_context, monkeypatch):
     
     # Mock do scanner para evitar tocar no disco ou banco de dados
     mock_scan = MagicMock(return_value={
+        "status": "success",
+        "total_files_scanned": 10,
         "tracks_indexed": 5,
+        "tracks_added": 3,
+        "tracks_updated": 2,
+        "tracks_unchanged": 5,
+        "tracks_missing": 1,
+        "errors_count": 1,
         "duration_ms": 12.5
     })
     monkeypatch.setattr("musicmatch.commands.registry.scan_library", mock_scan)
     
-    should_continue = registry.dispatch("/scan C:/Audio/Albuns", mock_context)
+    should_continue = registry.dispatch("/scan C:/Audio/Albuns do Rock", mock_context)
     assert should_continue is True
-    mock_scan.assert_called_once_with(path="C:/Audio/Albuns")
+    mock_scan.assert_called_once_with(path="C:/Audio/Albuns do Rock")
     mock_context.ui.render_success.assert_called_once()
+    assert mock_context.ui.render_warning.call_count == 2
+
+def test_dispatch_scan_with_error(mock_context, monkeypatch):
+    registry = CommandRegistry()
+    mock_context.registry = registry
+    
+    mock_scan = MagicMock(return_value={
+        "status": "error",
+        "message": "Diretório não encontrado."
+    })
+    monkeypatch.setattr("musicmatch.commands.registry.scan_library", mock_scan)
+    
+    should_continue = registry.dispatch("/scan C:/PathInvalido", mock_context)
+    assert should_continue is True
+    mock_context.ui.render_error.assert_called_once_with("Diretório não encontrado.")
 
 def test_dispatch_scan_missing_argument(mock_context):
     registry = CommandRegistry()

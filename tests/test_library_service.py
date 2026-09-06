@@ -60,21 +60,111 @@ def test_service_update_and_delete(service):
     assert service.get_track("trk_up") is None
     assert service.delete_track("trk_up") is False
 
-def test_service_scan_and_ingest(service):
+def seed_test_tracks(service):
+    """Insere faixas de teste padronizadas para validar busca, paginação e estatísticas."""
+    tracks = [
+        Track(
+            id="trk_001",
+            title="Bohemian Rhapsody",
+            artist="Queen",
+            album="A Night at the Opera",
+            genre="Rock",
+            duration_seconds=354.0,
+            bitrate_kbps=320,
+            bpm=72.0,
+            file_path="C:/Music/Queen/Bohemian_Rhapsody.mp3",
+            mood="Epic",
+            lufs=-12.4
+        ),
+        Track(
+            id="trk_002",
+            title="Midnight City",
+            artist="M83",
+            album="Hurry Up, We're Dreaming",
+            genre="Synthwave",
+            duration_seconds=243.0,
+            bitrate_kbps=320,
+            bpm=105.0,
+            file_path="C:/Music/M83/Midnight_City.mp3",
+            mood="Nostalgic / Energetic",
+            lufs=-9.8
+        ),
+        Track(
+            id="trk_003",
+            title="Take Five",
+            artist="Dave Brubeck Quartet",
+            album="Time Out",
+            genre="Jazz",
+            duration_seconds=324.0,
+            bitrate_kbps=256,
+            bpm=174.0,
+            file_path="C:/Music/Dave_Brubeck/Take_Five.mp3",
+            mood="Relaxed / Sophisticated",
+            lufs=-16.1
+        ),
+        Track(
+            id="trk_004",
+            title="Master of Puppets",
+            artist="Metallica",
+            album="Master of Puppets",
+            genre="Metal",
+            duration_seconds=515.0,
+            bitrate_kbps=320,
+            bpm=212.0,
+            file_path="C:/Music/Metallica/Master_of_Puppets.mp3",
+            mood="Aggressive / Intense",
+            lufs=-8.5
+        ),
+        Track(
+            id="trk_005",
+            title="Weightless",
+            artist="Marconi Union",
+            album="Ambient Transmissions Vol. 2",
+            genre="Ambient",
+            duration_seconds=485.0,
+            bitrate_kbps=320,
+            bpm=60.0,
+            file_path="C:/Music/Marconi_Union/Weightless.mp3",
+            mood="Calm / Meditative",
+            lufs=-21.3
+        ),
+    ]
+    service.add_tracks_batch(tracks)
+
+def test_service_scan_and_ingest(tmp_path, service):
     assert service.count_tracks() == 0
 
-    scan_result = service.scan_and_ingest("C:/MyMusic", recursive=True)
-    assert scan_result.status == "success"
-    assert scan_result.tracks_indexed == 5
-    assert service.count_tracks() == 5
+    # Cria arquivo de áudio real com tags
+    import wave
+    import struct
+    import mediafile
 
-    # Comprova que faixas escaneadas foram persistidas no SQLite
-    bohemian = service.get_track("trk_001")
-    assert bohemian is not None
-    assert bohemian.title == "Bohemian Rhapsody"
+    test_wav = tmp_path / "song.wav"
+    with wave.open(str(test_wav), "w") as wav:
+        wav.setnchannels(2)
+        wav.setsampwidth(2)
+        wav.setframerate(44100)
+        wav.writeframes(struct.pack("<h", 0) * 88200)
+
+    mf = mediafile.MediaFile(str(test_wav))
+    mf.title = "Real Song"
+    mf.artist = "Real Artist"
+    mf.album = "Real Album"
+    mf.genre = "Rock"
+    mf.save()
+
+    scan_result = service.scan_and_ingest(str(tmp_path), recursive=True)
+    assert scan_result.status == "success"
+    assert scan_result.tracks_indexed == 1
+    assert scan_result.tracks_added == 1
+    assert service.count_tracks() == 1
+
+    tracks = service.get_all_tracks()
+    assert tracks[0].title == "Real Song"
+    assert tracks[0].artist == "Real Artist"
 
 def test_service_search_tracks(service):
-    service.scan_and_ingest("C:/MyMusic")
+    seed_test_tracks(service)
 
     # Busca textual simples via FTS5
     results = service.search_tracks(query="Queen")
@@ -91,7 +181,7 @@ def test_service_search_tracks(service):
     assert len(fast_tracks) >= 1  # Dave Brubeck (174) e Metallica (212)
 
 def test_service_stats_and_clear(service):
-    service.scan_and_ingest("C:/MyMusic")
+    seed_test_tracks(service)
     stats = service.get_stats()
     assert stats["total_tracks"] == 5
     assert stats["avg_bpm"] > 0
@@ -101,7 +191,7 @@ def test_service_stats_and_clear(service):
     assert len(service.get_all_tracks()) == 0
 
 def test_service_get_all_tracks_pagination(service):
-    service.scan_and_ingest("C:/MyMusic")
+    seed_test_tracks(service)
     all_tracks = service.get_all_tracks()
     assert len(all_tracks) == 5
 
@@ -111,4 +201,5 @@ def test_service_get_all_tracks_pagination(service):
     paginated_offset = service.get_all_tracks(limit=2, offset=2)
     assert len(paginated_offset) == 2
     assert paginated[0].id != paginated_offset[0].id
+
 

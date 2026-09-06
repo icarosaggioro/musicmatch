@@ -119,3 +119,65 @@ def test_pydantic_json_schema_generation():
     assert schema["properties"]["bpm"]["description"] == "Batidas por minuto detectadas (BPM)"
     assert "required" in schema
     assert "file_path" in schema["required"]
+
+def test_track_deterministic_id_generation():
+    """Valida a geração determinística de ID via hash SHA-256 do caminho canônico (ADR 0009)."""
+    path_win = "C:\\Music\\Rock\\Queen - Bohemian Rhapsody.mp3"
+    path_norm = "c:/music/rock/queen - bohemian rhapsody.mp3"
+    
+    id_1 = Track.generate_id(path_win)
+    id_2 = Track.generate_id(path_norm)
+    
+    assert id_1 == id_2
+    assert id_1.startswith("trk_")
+    assert len(id_1) == 68  # 'trk_' (4) + 64 hex characters
+
+def test_track_adr0009_stat_cache_and_status_fields():
+    """Valida os campos de stat-cache, status ('AVAILABLE' / 'MISSING') e metadados adicionais."""
+    track = Track(
+        id=Track.generate_id("C:/Music/song.mp3"),
+        title="Test Song",
+        artist="Test Artist",
+        album="Test Album",
+        genre="Rock",
+        duration_seconds=120.0,
+        bitrate_kbps=320,
+        bpm=120.0,
+        file_path="C:/Music/song.mp3",
+        file_mtime=1725600000.5,
+        file_size=4194304,
+        status="AVAILABLE",
+        year=2024,
+        track_number=1,
+    )
+    assert track.file_mtime == 1725600000.5
+    assert track.file_size == 4194304
+    assert track.status == "AVAILABLE"
+    assert track.year == 2024
+    assert track.track_number == 1
+
+    # Status deve aceitar 'MISSING'
+    track_missing = track.model_copy(update={"status": "MISSING"})
+    assert track_missing.status == "MISSING"
+
+def test_scan_result_adr0009_metrics():
+    """Valida as métricas detalhadas de idempotência do ScanResult conforme ADR 0009."""
+    result = ScanResult(
+        message="Scan completo com stat-cache.",
+        path="C:/Music",
+        total_files_scanned=50,
+        tracks_indexed=10,
+        tracks_added=10,
+        tracks_updated=2,
+        tracks_unchanged=38,
+        tracks_missing=1,
+        errors_count=0,
+        duration_ms=25.0,
+        database_total_tracks=49
+    )
+    assert result.tracks_added == 10
+    assert result.tracks_updated == 2
+    assert result.tracks_unchanged == 38
+    assert result.tracks_missing == 1
+    assert result.errors_count == 0
+

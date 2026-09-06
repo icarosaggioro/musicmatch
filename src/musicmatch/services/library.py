@@ -20,6 +20,7 @@ Por que não deixar os comandos do Harness ou as ferramentas de IA chamarem o SQ
 import time
 from typing import Any, Dict, List, Optional
 from musicmatch.domain.models import ScanResult, Track
+from musicmatch.services.scanner import AudioScanner
 from musicmatch.storage.sqlite_repo import SQLiteTrackRepository
 
 class LibraryService:
@@ -27,6 +28,7 @@ class LibraryService:
 
     def __init__(self, repository: Optional[SQLiteTrackRepository] = None) -> None:
         self.repo = repository or SQLiteTrackRepository()
+        self.scanner = AudioScanner(repository=self.repo)
 
     def add_track(self, track: Track) -> Track:
         """Adiciona uma nova faixa à biblioteca após validar e persistir."""
@@ -75,97 +77,8 @@ class LibraryService:
         )
 
     def scan_and_ingest(self, path: str, recursive: bool = True) -> ScanResult:
-        """Executa o caso de uso de varredura e ingestão de diretório no acervo.
-        
-        Na Fase 1/2 (Walking Skeleton), gera faixas representativas com metadados
-        acústicos variados e as persiste diretamente no banco de dados SQLite.
-        """
-        start_time = time.perf_counter()
-
-        synthetic_tracks = [
-            Track(
-                id="trk_001",
-                title="Bohemian Rhapsody",
-                artist="Queen",
-                album="A Night at the Opera",
-                genre="Rock",
-                duration_seconds=354.0,
-                bitrate_kbps=320,
-                bpm=72.0,
-                file_path=f"{path}/Queen/Bohemian_Rhapsody.mp3",
-                mood="Epic",
-                lufs=-12.4
-            ),
-            Track(
-                id="trk_002",
-                title="Midnight City",
-                artist="M83",
-                album="Hurry Up, We're Dreaming",
-                genre="Synthwave",
-                duration_seconds=243.0,
-                bitrate_kbps=320,
-                bpm=105.0,
-                file_path=f"{path}/M83/Midnight_City.mp3",
-                mood="Nostalgic / Energetic",
-                lufs=-9.8
-            ),
-            Track(
-                id="trk_003",
-                title="Take Five",
-                artist="Dave Brubeck Quartet",
-                album="Time Out",
-                genre="Jazz",
-                duration_seconds=324.0,
-                bitrate_kbps=256,
-                bpm=174.0,
-                file_path=f"{path}/Dave_Brubeck/Take_Five.mp3",
-                mood="Relaxed / Sophisticated",
-                lufs=-16.1
-            ),
-            Track(
-                id="trk_004",
-                title="Master of Puppets",
-                artist="Metallica",
-                album="Master of Puppets",
-                genre="Metal",
-                duration_seconds=515.0,
-                bitrate_kbps=320,
-                bpm=212.0,
-                file_path=f"{path}/Metallica/Master_of_Puppets.mp3",
-                mood="Aggressive / Intense",
-                lufs=-8.5
-            ),
-            Track(
-                id="trk_005",
-                title="Weightless",
-                artist="Marconi Union",
-                album="Ambient Transmissions Vol. 2",
-                genre="Ambient",
-                duration_seconds=485.0,
-                bitrate_kbps=320,
-                bpm=60.0,
-                file_path=f"{path}/Marconi_Union/Weightless.mp3",
-                mood="Calm / Meditative",
-                lufs=-21.3
-            ),
-        ]
-
-        # Persiste em lote no SQLite real
-        self.repo.insert_batch(synthetic_tracks)
-
-        elapsed_ms = round((time.perf_counter() - start_time) * 1000, 2)
-
-        return ScanResult(
-            status="success",
-            message=f"Varredura concluída com sucesso no diretório '{path}'.",
-            path=path,
-            recursive=recursive,
-            total_files_scanned=len(synthetic_tracks),
-            tracks_indexed=len(synthetic_tracks),
-            sample_tracks=[f"{t.artist} - {t.title} ({t.genre})" for t in synthetic_tracks],
-            duration_ms=elapsed_ms,
-            database_total_tracks=self.repo.count(),
-        )
+        """Executa a varredura e ingestão real de arquivos de áudio locais via AudioScanner."""
+        return self.scanner.scan_directory(path_str=path, recursive=recursive)
 
     def count_tracks(self) -> int:
         """Retorna o número total de faixas na biblioteca."""

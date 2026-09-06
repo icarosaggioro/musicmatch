@@ -250,3 +250,92 @@ def test_get_all_tracks_pagination(repo):
     assert len(page3) == 1
     assert page3[0].artist == "Artist 5"
 
+def test_adr0009_stat_cache_fields_persistence(repo):
+    """Garante que file_mtime, file_size, status, year e track_number sejam persistidos e recuperados."""
+    track = Track(
+        id=Track.generate_id("C:/Music/test_song.mp3"),
+        title="Persisted Title",
+        artist="Persisted Artist",
+        album="Persisted Album",
+        genre="Jazz",
+        duration_seconds=180.0,
+        bitrate_kbps=320,
+        bpm=120.0,
+        file_path="C:/Music/test_song.mp3",
+        file_mtime=1725601234.56,
+        file_size=5242880,
+        status="AVAILABLE",
+        year=2021,
+        track_number=3,
+    )
+    repo.insert_track(track)
+    retrieved = repo.get_track_by_id(track.id)
+    assert retrieved is not None
+    assert retrieved.file_mtime == 1725601234.56
+    assert retrieved.file_size == 5242880
+    assert retrieved.status == "AVAILABLE"
+    assert retrieved.year == 2021
+    assert retrieved.track_number == 3
+
+    # Atualização via update_track
+    track.status = "MISSING"
+    track.file_mtime = 1725609999.0
+    assert repo.update_track(track) is True
+    updated = repo.get_track_by_id(track.id)
+    assert updated.status == "MISSING"
+    assert updated.file_mtime == 1725609999.0
+
+def test_get_tracks_under_path_and_mark_missing(repo):
+    """Testa a seleção de faixas sob um diretório e o soft-delete (mark_missing)."""
+    t1 = Track(
+        id=Track.generate_id("C:/Music/Rock/s1.mp3"),
+        title="Song 1", artist="Artist 1", album="Album 1", genre="Rock",
+        duration_seconds=100.0, bitrate_kbps=320, bpm=100.0,
+        file_path="C:/Music/Rock/s1.mp3", status="AVAILABLE"
+    )
+    t2 = Track(
+        id=Track.generate_id("C:/Music/Rock/s2.mp3"),
+        title="Song 2", artist="Artist 2", album="Album 2", genre="Rock",
+        duration_seconds=120.0, bitrate_kbps=320, bpm=120.0,
+        file_path="C:/Music/Rock/s2.mp3", status="AVAILABLE"
+    )
+    t3 = Track(
+        id=Track.generate_id("C:/Music/Jazz/s3.mp3"),
+        title="Song 3", artist="Artist 3", album="Album 3", genre="Jazz",
+        duration_seconds=140.0, bitrate_kbps=320, bpm=140.0,
+        file_path="C:/Music/Jazz/s3.mp3", status="AVAILABLE"
+    )
+    repo.insert_batch([t1, t2, t3])
+
+    # Busca apenas faixas sob "C:/Music/Rock"
+    rock_tracks = repo.get_tracks_under_path("C:/Music/Rock")
+    assert len(rock_tracks) == 2
+    assert {t.id for t in rock_tracks} == {t1.id, t2.id}
+
+    # Marca t1 como MISSING (soft-delete)
+    count_marked = repo.mark_missing_by_ids([t1.id])
+    assert count_marked == 1
+    assert repo.get_track_by_id(t1.id).status == "MISSING"
+    assert repo.get_track_by_id(t2.id).status == "AVAILABLE"
+
+def test_get_stat_cache_map(repo):
+    """Testa a extração rápida do mapa de stat-cache para re-scans O(1)."""
+    t1 = Track(
+        id=Track.generate_id("C:/Music/s1.mp3"),
+        title="S1", artist="A1", album="Alb1", genre="Pop",
+        duration_seconds=100.0, bitrate_kbps=320, bpm=100.0,
+        file_path="C:/Music/s1.mp3", file_mtime=1000.0, file_size=2048,
+        status="AVAILABLE"
+    )
+    repo.insert_track(t1)
+
+    cache_map = repo.get_stat_cache_map("C:/Music")
+    canonical_key = Track.canonicalize_path("C:/Music/s1.mp3")
+    assert canonical_key in cache_map
+    mtime, size, status, trk_id = cache_map[canonical_key]
+    assert mtime == 1000.0
+    assert size == 2048
+    assert status == "AVAILABLE"
+    assert trk_id == t1.id
+
+

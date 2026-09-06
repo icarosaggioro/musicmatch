@@ -84,6 +84,10 @@ class ConsoleUI:
         """Exibe uma mensagem de erro visualmente destacada."""
         print(f"❌   {message}")
 
+    def render_warning(self, message: str) -> None:
+        """Exibe uma mensagem de aviso visualmente destacada."""
+        print(f"⚠️   {message}")
+
     def render_track_page(
         self,
         tracks: List[Any],

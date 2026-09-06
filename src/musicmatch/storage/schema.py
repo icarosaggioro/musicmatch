@@ -33,9 +33,18 @@ CREATE TABLE IF NOT EXISTS tracks (
     file_path TEXT UNIQUE NOT NULL,
     mood TEXT,
     lufs REAL,
+    file_mtime REAL,
+    file_size INTEGER,
+    status TEXT DEFAULT 'AVAILABLE',
+    year INTEGER,
+    track_number INTEGER,
     created_at TEXT DEFAULT (datetime('now')),
     updated_at TEXT DEFAULT (datetime('now'))
 );
+"""
+
+CREATE_INDEX_STATUS = """
+CREATE INDEX IF NOT EXISTS idx_tracks_status ON tracks(status);
 """
 
 CREATE_TRACKS_FTS_TABLE = """
@@ -79,6 +88,7 @@ END;
 
 ALL_SCHEMA_STATEMENTS = [
     CREATE_TRACKS_TABLE,
+    CREATE_INDEX_STATUS,
     CREATE_TRACKS_FTS_TABLE,
     CREATE_TRIGGER_AFTER_INSERT,
     CREATE_TRIGGER_AFTER_DELETE,

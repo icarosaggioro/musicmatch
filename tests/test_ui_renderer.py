@@ -100,6 +100,9 @@ def test_render_helpers(capsys):
     ui.render_error("Falha ao abrir arquivo.")
     assert "Falha ao abrir arquivo." in capsys.readouterr().out
 
+    ui.render_warning("Aviso de teste.")
+    assert "Aviso de teste." in capsys.readouterr().out
+
     ui.render_goodbye()
     assert "Encerrando sessão do MusicMatch. Até logo!" in capsys.readouterr().out
 
