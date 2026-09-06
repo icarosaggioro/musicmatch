@@ -110,3 +110,16 @@ Este documento serve como mapa de referência rápida para todos os tópicos con
     * **Paralelismo de CPU**: Execução multi-threaded de queries com fórmulas matemáticas de similaridade (BPM harmônico, decaimento temporal gaussiano).
     * **Concorrência Plena (MVCC)**: Ingestão massiva em Rust (`tokio-postgres` via `COPY`) sem locks com leitores ou agentes.
 
+---
+
+## 9. Idempotência, Identidade Canônica e Ciclo de Vida da Biblioteca
+* **Registro de Decisão Arquitetural**: [ADR 0009 - Library Idempotency, Track Identity via Full SHA-256 Path Hash, Stat-Cache, and Non-Destructive Lifecycle Policy](file:///c:/WebApps/musicmatch/docs/adr/0009-library-idempotency-stat-cache-and-lifecycle-policy.md).
+* **Diretrizes de Domínio**:
+  * **Identidade Canônica**: Chave primária determinística (`trk_<sha256_full>`) baseada no caminho normalizado minúsculo no SO.
+  * **Stat-Cache**: Validação instantânea via `os.stat` (`mtime` + `file_size`) para pular I/O redundante em varreduras repetidas.
+  * **Biblioteca Multidirecional**: A biblioteca é o catálogo persistido no SQLite, permitindo músicas espalhadas livremente por múltiplos discos, pastas ou pendrives.
+  * **Soft-Delete e Segurança Absoluta**: Arquivos inacessíveis tornam-se `MISSING` sem perda de dados acústicos ou playlists.
+  * **Purge Manual em Duas Etapas**: Exclusão definitiva de órfãos restrita ao comando explícito com a frase `PLEASEPRETTYPLEASE`.
+  * **Subagente Auditor Oportunista**: Agente de IA em background investiga quedas e reconcilia arquivos movidos/renomeados de dentro para fora sem travar a UI.
+
+

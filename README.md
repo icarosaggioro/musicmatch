@@ -208,6 +208,7 @@ All architectural decisions and research references are persisted and versioned 
   - [ADR 0006](docs/adr/0006-domain-modeling-and-runtime-validation-with-pydantic.md): Domain Modeling and Runtime Validation with Pydantic.
   - [ADR 0007](docs/adr/0007-sqlite-persistence-with-fts5-and-service-layer.md): SQLite Persistence with FTS5 and Domain Service Layer.
   - [ADR 0008](docs/adr/0008-database-scaling-and-postgresql-migration-roadmap.md): Database Scaling Strategy and PostgreSQL Migration Roadmap.
+  - [ADR 0009](docs/adr/0009-library-idempotency-stat-cache-and-lifecycle-policy.md): Library Idempotency, Track Identity via Full SHA-256 Path Hash, Stat-Cache, and Non-Destructive Lifecycle Policy.
 
 ---
 
