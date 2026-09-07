@@ -67,3 +67,20 @@ O projeto é concebido e conduzido sob a ótica combinada de duas disciplinas de
 │  ◄── Evento Assíncrono de Conclusão / Progresso para o Python ───────────────┘
 └──────────────────────────────────────────────────────────────────────────────┘
 ```
+
+---
+
+## 4. Diretrizes de Idioma e Nomenclatura
+
+* **Código-Fonte e Nomenclatura (Inglês Obrigatório)**:
+  * Nomes de arquivos e pastas
+  * Nomes de módulos, pacotes, classes, funções, variáveis e serviços
+  * Comentários e docstrings no código-fonte
+  * Mensagens de commit no Git
+* **README**:
+  * `README.md` (e congêneres de apresentação pública do repositório): **Inglês**
+* **Documentação Técnica (`docs/`)**:
+  * Todos os arquivos em `docs/` (ADRs, relatórios técnicos, pesquisas, arquitetura): **Português (Brasil)**
+* **Interação e Conversação**:
+  * Todas as conversas, explicações e respostas no chat com o usuário: **Português (Brasil)**
+
