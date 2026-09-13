@@ -1,0 +1,5 @@
+{
+  "summary":  "Relatório técnico exaustivo de Engenharia de Software sobre a base de código do yt-dlp, detalhando arquitetura, funcionamento interno, orquestração de downloaders e pós-processadores, subcomponentes reutilizáveis, dependências e guia de integração para outros projetos.",
+  "updatedAt":  "2026-09-13T14:37:46.671016900Z",
+  "userFacing":  true
+}

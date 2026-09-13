@@ -122,4 +122,16 @@ Este documento serve como mapa de referência rápida para todos os tópicos con
   * **Purge Manual em Duas Etapas**: Exclusão definitiva de órfãos restrita ao comando explícito com a frase `PLEASEPRETTYPLEASE`.
   * **Subagente Auditor Oportunista**: Agente de IA em background investiga quedas e reconcilia arquivos movidos/renomeados de dentro para fora sem travar a UI.
 
+---
+
+## 10. Roadmap de Evolução Funcional e Próximas Funcionalidades Reais
+* **Documento Completo de Especificação**: [`docs/ROADMAP_PROXIMAS_FUNCIONALIDADES.md`](file:///c:/WebApps/musicmatch/docs/ROADMAP_PROXIMAS_FUNCIONALIDADES.md).
+* **Decisão Arquitetural de Integração**: [ADR 0010 - Estratégia de Integração do yt-dlp, Gestão de Dependências e Empacotamento de CI/CD](file:///c:/WebApps/musicmatch/docs/adr/0010-yt-dlp-integration-and-packaging-strategy.md).
+* **Frentes Estratégicas Mapeadas**:
+  1. **Frente 1: Ingestão Web e Download Seguro com `yt-dlp`**: Integração assíncrona, blindagem contra SSRF/DoS, extração de áudio para MP3/FLAC e catalogação automática.
+  2. **Frente 2: Motor de DSP Acústico e Fingerprinting Real**: Chromaprint via `pyacoustid`, medição de loudness EBU R128/LUFS, BPM acústico e Camelot Wheel.
+  3. **Frente 3: Reprodução de Áudio Integrada no Terminal (Player Engine)**: Player local concorrente com comandos de transporte (`/play`, `/pause`, `/resume`, `/stop`) e progresso visual.
+  4. **Frente 4: Curadoria por "Vibe" & Busca Semântica com Google Gemini**: Enriquecimento de humor/mood em lote e busca em linguagem natural.
+  5. **Frente 5: Auditor de Biblioteca & Purge Seguro (ADR 0009)**: Comando `/prune` com senha de segurança e reconciliação rápida de faixas movidas.
+  6. **Frente 6: Sessão Conversacional Multi-Turn no REPL**: Conversa contínua com estado via `google-genai` e suporte a subagentes autônomos.
 

@@ -70,17 +70,18 @@ O projeto é concebido e conduzido sob a ótica combinada de duas disciplinas de
 
 ---
 
-## 4. Diretrizes de Idioma e Nomenclatura
+## 4. Diretrizes de Idioma e Nomenclatura (Padrão: EN-INT)
 
-* **Código-Fonte e Nomenclatura (Inglês Obrigatório)**:
+A partir de agora, o projeto adota o **Inglês Internacional (EN-INT)** como padrão unificado para documentação técnica e pública:
+
+* **Código-Fonte e Nomenclatura (EN-INT Obrigatório)**:
   * Nomes de arquivos e pastas
   * Nomes de módulos, pacotes, classes, funções, variáveis e serviços
   * Comentários e docstrings no código-fonte
-  * Mensagens de commit no Git
-* **README**:
-  * `README.md` (e congêneres de apresentação pública do repositório): **Inglês**
-* **Documentação Técnica (`docs/`)**:
-  * Todos os arquivos em `docs/` (ADRs, relatórios técnicos, pesquisas, arquitetura): **Português (Brasil)**
-* **Interação e Conversação**:
-  * Todas as conversas, explicações e respostas no chat com o usuário: **Português (Brasil)**
+  * Mensagens de commit no Git (Conventional Commits)
+* **Documentação Técnica e Pública (`docs/`, `README.md`, ADRs - EN-INT Obrigatório)**:
+  * Daqui em diante, todos os novos documentos, especificações de arquitetura, ADRs, relatórios técnicos e textos públicos devem ser redigidos em **Inglês Internacional (EN-INT)**.
+  * Documentos legados anteriores permanecem para preservação de histórico, mas novas adições e revisões adotam estritamente EN-INT.
+* **Interação e Conversação no Chat**:
+  * Todas as conversas, explicações e respostas no chat com o usuário permanecem em **Português (Brasil)** (ou conforme a língua preferida pelo usuário na sessão).
 
