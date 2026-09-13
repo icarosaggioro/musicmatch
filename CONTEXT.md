@@ -115,6 +115,22 @@ _Avoid_: Split album, fragmented release
 A user-defined, thematic compilation of tracks (e.g. Mixtape, Gym Set) preserved physically in a single cohesive directory under `Collections/<Collection_Name>/` regardless of artist diversity.
 _Avoid_: User folder, ad-hoc dump
 
+**Managed Library Resolution**:
+The deterministic precedence hierarchy used to resolve the Managed Library Directory: `.env` override > dynamic configuration store > cross-platform OS standard music directory (`~/Music/MusicMatch`).
+_Avoid_: Hardcoded path, fixed directory
+
+**Write Access Probe**:
+An atomic filesystem capability test (creating and immediately deleting a hidden `.musicmatch_probe` file) executed upon path registration to guarantee read/write permissions before accepting a directory.
+_Avoid_: Permission check, read-only assumption
+
+**Critical Path Guard**:
+The security boundary blocking system-critical paths (`C:\`, `/`, `/etc`, `C:\Windows`, `C:\Program Files`, or the application source directory) from being designated as library storage.
+_Avoid_: Open filesystem, root acceptance
+
+**Storage Disconnection Guard**:
+The operational safety policy that halts track promotion and retains staged files safely in the Staging Area whenever the target physical drive or network mount is unreachable.
+_Avoid_: Silent failure, fallback dump
+
 ### Agent & AI Domain
 
 **Orchestrator**:
