@@ -54,6 +54,67 @@ _Avoid_: Background scanner, watcher thread, fixer bot
 The deterministic reconciliation heuristic that identifies moved or renamed audio files by matching exact file size in bytes, duration, title, and artist against currently missing tracks, migrating database keys and preserving acoustic analysis without re-running DSP.
 _Avoid_: Re-import, fuzzy match, duplicate track
 
+### Ingestion & Acquisition Domain
+
+**Staging Area**:
+A designated temporary directory partitioned by isolated download sessions where freshly acquired audio streams and initial tags reside before validation or library promotion.
+_Avoid_: Cache, temp folder, dump
+
+**Download Session**:
+A uniquely scoped, timestamped subfolder within the staging area dedicated to a single user acquisition request, isolating incoming files from concurrent or prior operations.
+_Avoid_: Batch run, download job
+
+**Managed Library Directory**:
+An officially designated canonical root directory where audio tracks are promoted, structured into standardized subfolders (e.g., Artist/Album), and maintained under strict system naming conventions, distinct from arbitrary external storage paths.
+_Avoid_: Primary folder, base folder, app directory
+
+**Track Promotion**:
+The formal workflow step where an audio file in the staging area is inspected, validated against metadata standards, retagged via mediafile, and moved into the managed library directory.
+_Avoid_: Copying, importing, file transfer
+
+**Extended Metadata**:
+Optional semantic facets (version attributes like Remaster, Live, Acoustic, and Collaborators) extracted during web title sanitization and preserved as queryable attributes in the catalog rather than polluting canonical track titles.
+_Avoid_: Extra tags, title remnants, noise
+
+**Search-to-Download**:
+The query-driven acquisition workflow enabling users to discover candidate audio tracks via direct YouTube search queries or LLM query expansion before initiating downloads.
+_Avoid_: Web scrape, auto-downloader
+
+**Session Resolution**:
+The explicit user decision lifecycle for a download session, requiring tracks to either be individually promoted to the Managed Library or discarded as a whole.
+_Avoid_: Auto-expire, session timeout
+
+**Promotion Collision**:
+An invariant condition where a staged track targeted for promotion matches an existing file or canonical ID in the Managed Library, blocking the transfer and preserving the staged copy for manual inspection.
+_Avoid_: Overwrite, silent skip
+
+**AI-Assisted Search (`--ai-assist`)**:
+An explicit acquisition query mode that routes ambiguous, lyrical, or descriptive inputs through the LLM for canonical artist and title deduction prior to querying web audio indexes.
+_Avoid_: Smart download, magic search
+
+**Session Manifest**:
+An isolated, self-contained `session.json` file stored within each download session directory that records creation timestamp, source query or URL, acquisition status, and tracked file metadata.
+_Avoid_: Session database, state log
+
+**Atomic Cancellation**:
+A resilience guarantee ensuring that an interrupted download operation (via `Ctrl+C` or network failure) immediately purges partial artifacts (`.part`, `.ytdl`), leaving the staging area free of corrupted files.
+_Avoid_: Broken resume, orphaned temp
+
+**Managed Library Taxonomy**:
+The canonical on-disk directory hierarchy within the Managed Library partitioned into three strict top-level namespaces:
+1. `Artists/<Artist>/<Album>/` (with `Artists/<Artist>/Singles/` for standalone tracks)
+2. `Various Artists/<Album>/` for multi-artist commercial releases and soundtracks
+3. `Collections/<Collection_Name>/` for custom user-curated compilations kept physically unified
+_Avoid_: Flat storage, unpartitioned root
+
+**Compilation Album**:
+An official release containing tracks performed by multiple distinct artists united under a single release title, organized on disk under `Various Artists/<Album>/` to preserve album cohesion.
+_Avoid_: Split album, fragmented release
+
+**User Collection**:
+A user-defined, thematic compilation of tracks (e.g. Mixtape, Gym Set) preserved physically in a single cohesive directory under `Collections/<Collection_Name>/` regardless of artist diversity.
+_Avoid_: User folder, ad-hoc dump
+
 ### Agent & AI Domain
 
 **Orchestrator**:

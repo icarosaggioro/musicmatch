@@ -55,11 +55,13 @@ flowchart TD
 Permitir que o usuário e o Agente Inteligente incorporem novas músicas diretamente de plataformas web (YouTube, SoundCloud, Bandcamp) para a biblioteca local do computador, com catalogação instantânea no banco de dados.
 
 #### Fundamentação Técnica
-Conforme os relatórios [`docs/YT-DLP_RELATORIO_TECNICO.md`](file:///c:/WebApps/musicmatch/docs/YT-DLP_RELATORIO_TECNICO.md), [`docs/YT-DLP_RELATORIO_TECNICO_E_SEGURANCA.md`](file:///c:/WebApps/musicmatch/docs/YT-DLP_RELATORIO_TECNICO_E_SEGURANCA.md) e o [ADR 0010 - Estratégia de Integração do yt-dlp, Gestão de Dependências e Empacotamento de CI/CD](file:///c:/WebApps/musicmatch/docs/adr/0010-yt-dlp-integration-and-packaging-strategy.md), o `yt-dlp` é integrado como dependência declarada (fora da pasta `src/`) e acessado de forma assíncrona e blindada contra falhas de segurança:
+Conforme os relatórios [`docs/YT-DLP_RELATORIO_TECNICO.md`](file:///c:/WebApps/musicmatch/docs/YT-DLP_RELATORIO_TECNICO.md), [`docs/YT-DLP_RELATORIO_TECNICO_E_SEGURANCA.md`](file:///c:/WebApps/musicmatch/docs/YT-DLP_RELATORIO_TECNICO_E_SEGURANCA.md), o [ADR 0010 - Estratégia de Integração do yt-dlp](file:///c:/WebApps/musicmatch/docs/adr/0010-yt-dlp-integration-and-packaging-strategy.md) e o [ADR 0011 - Web Ingestion Pipeline, Two-Stage Staging Architecture, and Managed Library Taxonomy](file:///c:/WebApps/musicmatch/docs/adr/0011-web-ingestion-two-stage-staging-and-managed-library-taxonomy.md), a arquitetura de ingestão web opera sob o modelo de dois estágios e taxonomia canônica:
 1. **Blindagem contra SSRF e Recursos**: Bloqueio de `enable_file_urls: False`, filtro `match_filter` para barrar transmissões ao vivo infinitas (`!is_live`) e limite de duração máxima (ex: 30 minutos).
 2. **Proteção contra Path Traversal**: Uso estrito de `prepare_filename` ou IDs canônicos para evitar nomes maliciosos oriundos de títulos da web.
 3. **Pós-processamento de Áudio**: Conversão transparente via `FFmpegExtractAudio` para MP3/FLAC em diretório dedicado (`data/downloads` ou pasta configurada no `.env`).
 4. **Isolamento de Código e CI/CD**: Código do `yt-dlp` desacoplado da `src/`, com desenvolvimento local conectado ao clone `C:\WebApps\yt-dlp` via `pip install -e` e resolução automatizada no GitHub Actions.
+5. **Preservação de Áudio Nativo**: Extração do melhor stream sem perdas de transcodificação (`.m4a`/`.opus`), com conversão opcional para MP3 320 kbps sob demanda (`--format mp3`).
+6. **Isolamento de Staging & Taxonomia Canônica**: Ingestão particionada por sessões com manifestos `session.json`, promoção não-destrutiva e estrutura física em `Artists/<Artist>/<Album>`, `Various Artists/<Album>` e `Collections/<Name>`.
 
 #### Componentes a Criar / Modificar
 * **`musicmatch.services.downloader` (`AudioDownloaderService`)**:
