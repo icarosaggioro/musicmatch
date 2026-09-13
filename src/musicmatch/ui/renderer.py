@@ -117,6 +117,81 @@ class ConsoleUI:
         """Exibe a mensagem de encerramento da sessão."""
         print("\nEncerrando sessão do MusicMatch. Até logo!\n")
 
+    def render_search_candidates(self, candidates: List[Dict[str, Any]]) -> None:
+        """Exibe candidatos a download encontrados no YouTube."""
+        print("\n" + "=" * 72)
+        print("🔍 RESULTADOS DA BUSCA (Escolha uma opção de 1 a 5, ou 0 para cancelar):")
+        print("=" * 72)
+        for idx, item in enumerate(candidates, start=1):
+            dur = int(item.get("duration") or 0)
+            mins, secs = divmod(dur, 60)
+            duration_str = f"{mins:02d}:{secs:02d}" if dur > 0 else "--:--"
+            views = item.get("view_count") or 0
+            views_str = f" | {views:,} views" if views else ""
+            print(f"  [{idx}] {item.get('title', 'Sem Título')}")
+            print(f"       Canal: {item.get('channel', 'Desconhecido')} | Duração: {duration_str}{views_str}")
+        print("-" * 72 + "\n")
+
+    def render_staging_sessions(self, sessions: List[Any]) -> None:
+        """Exibe lista de sessões ativas na Staging Area."""
+        print("\n" + "=" * 72)
+        print("📥 SESSÕES ATIVAS NA STAGING AREA:")
+        print("=" * 72)
+        if not sessions:
+            print("  Nenhuma sessão ativa no momento. Áudios baixados já promovidos ou descartados.")
+        else:
+            for s in sessions:
+                created = s.created_at[:19].replace("T", " ") if hasattr(s, "created_at") else ""
+                track_count = len(s.tracks) if hasattr(s, "tracks") else 0
+                print(f"  • Sessão: {s.session_id}")
+                print(f"    Criada em: {created} | Faixas: {track_count} | Origem: {s.query_or_url}")
+                print(f"    Comandos: /staging show {s.session_id} | /staging discard {s.session_id}")
+        print("-" * 72 + "\n")
+
+    def render_staging_detail(self, session: Any) -> None:
+        """Exibe os detalhes e faixas de uma sessão da Staging Area."""
+        print("\n" + "=" * 72)
+        print(f"📦 DETALHES DA SESSÃO [{session.session_id}]:")
+        print("=" * 72)
+        print(f"  Origem: {session.query_or_url}")
+        print(f"  Status: {session.status}")
+        print(f"  Total de Faixas: {len(session.tracks)}")
+        print("-" * 72)
+        for idx, track in enumerate(session.tracks, start=1):
+            dur = int(track.duration_seconds)
+            mins, secs = divmod(dur, 60)
+            size_mb = track.file_size / (1024 * 1024)
+            ext_tags = []
+            if track.extended_metadata:
+                for k, v in track.extended_metadata.items():
+                    ext_tags.append(f"{k}: {v}")
+            tags_str = f" [{', '.join(ext_tags)}]" if ext_tags else ""
+            print(f"  {idx}. {track.artist} - {track.title}{tags_str}")
+            print(f"     Formato: {track.format.upper()} | Duração: {mins:02d}:{secs:02d} | Tamanho: {size_mb:.2f} MB")
+            print(f"     Arquivo: {track.file_path}")
+        print("-" * 72 + "\n")
+
+    def render_staging_alert(self, active_count: int) -> None:
+        """Exibe alerta proeminente no início ou encerramento sobre arquivos pendentes na Staging Area."""
+        if active_count <= 0:
+            return
+        plural = "sessões ativas" if active_count > 1 else "sessão ativa"
+        print("\n" + "!" * 72)
+        print(f"⚠️   ALERTA STAGING: Você possui {active_count} {plural} aguardando revisão!")
+        print("    Faixas baixadas permanecem isoladas na Staging Area até serem promovidas.")
+        print("    Use '/staging list' para ver as sessões ou '/staging show <id>' para inspecionar.")
+        print("!" * 72 + "\n")
+
+    def render_library_status(self, info: Dict[str, Any]) -> None:
+        """Exibe informações sobre a localização e integridade da Biblioteca Gerenciada."""
+        print("\n" + "=" * 72)
+        print("🏛️  BIBLIOTECA GERENCIADA (Managed Library):")
+        print("=" * 72)
+        for k, v in info.items():
+            print(f"  • {k:<20}: {v}")
+        print("-" * 72 + "\n")
+
     def clear_screen(self) -> None:
         """Limpa o console de maneira compatível com Windows e Unix."""
         os.system("cls" if os.name == "nt" else "clear")
+

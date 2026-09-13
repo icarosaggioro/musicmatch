@@ -28,6 +28,9 @@ def test_command_registry_defaults():
     assert "/list" in names
     assert "/scan" in names
     assert "/search" in names
+    assert "/download" in names
+    assert "/staging" in names
+    assert "/library" in names
     assert "/clear" in names
     assert "/exit" in names
 

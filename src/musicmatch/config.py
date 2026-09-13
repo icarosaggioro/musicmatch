@@ -15,5 +15,10 @@ class Settings:
     GEMINI_MODEL: str = os.getenv("GEMINI_MODEL", "gemini-3.6-flash")
     LOG_LEVEL: str = os.getenv("LOG_LEVEL", "INFO")
     DATABASE_PATH: str = os.getenv("DATABASE_PATH", str(PROJECT_ROOT / "data" / "musicmatch.db"))
+    STAGING_DIR: str = os.getenv("MUSICMATCH_STAGING_DIR", str(PROJECT_ROOT / "data" / "staging"))
+    MANAGED_LIBRARY_DIR: str = os.getenv("MUSICMATCH_LIBRARY_DIR", "")
+    DOWNLOAD_DEFAULT_FORMAT: str = os.getenv("DOWNLOAD_DEFAULT_FORMAT", "native")
+    DOWNLOAD_MAX_DURATION_SECONDS: int = int(os.getenv("DOWNLOAD_MAX_DURATION_SECONDS", "1800"))
+    DOWNLOAD_PLAYLIST_MAX_TRACKS: int = int(os.getenv("DOWNLOAD_PLAYLIST_MAX_TRACKS", "50"))
 
 settings = Settings()
