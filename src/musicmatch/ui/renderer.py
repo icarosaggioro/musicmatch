@@ -191,7 +191,39 @@ class ConsoleUI:
             print(f"  • {k:<20}: {v}")
         print("-" * 72 + "\n")
 
+    def render_promotion_results(self, results: List[Any]) -> None:
+        """Exibe o relatório consolidado da promoção de faixas para a Biblioteca Gerenciada."""
+        print("\n" + "=" * 72)
+        print("🚀 RESULTADO DA PROMOÇÃO PARA A BIBLIOTECA GERENCIADA:")
+        print("=" * 72)
+        promoted_count = sum(1 for r in results if getattr(r, "status", "") == "PROMOTED")
+        collision_count = sum(1 for r in results if getattr(r, "status", "") == "COLLISION")
+        error_count = sum(1 for r in results if getattr(r, "status", "") in ("ERROR", "NOT_FOUND"))
+
+        for idx, res in enumerate(results, start=1):
+            status = getattr(res, "status", "UNKNOWN")
+            dest = getattr(res, "destination_path", "") or "(Nenhum destino)"
+            msg = getattr(res, "error_message", None)
+
+            if status == "PROMOTED":
+                print(f"  [{idx}] ✅ PROMOVIDA COM SUCESSO:")
+                print(f"       Destino: {dest}")
+            elif status == "COLLISION":
+                print(f"  [{idx}] ⚠️  COLISÃO DETECTADA (Arquivo retido na Staging Area):")
+                print(f"       Destino existente: {dest}")
+                if msg:
+                    print(f"       Motivo: {msg}")
+            else:
+                print(f"  [{idx}] ❌ FALHA NA PROMOÇÃO:")
+                if msg:
+                    print(f"       Erro: {msg}")
+
+        print("-" * 72)
+        print(f"  Total: {promoted_count} promovida(s) | {collision_count} colisão(ões) | {error_count} erro(s)")
+        print("=" * 72 + "\n")
+
     def clear_screen(self) -> None:
         """Limpa o console de maneira compatível com Windows e Unix."""
         os.system("cls" if os.name == "nt" else "clear")
+
 

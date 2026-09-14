@@ -17,6 +17,7 @@ from typing import Dict, List, Optional
 from musicmatch.commands.base import Command, CommandContext
 from musicmatch.commands.download import DownloadCommand
 from musicmatch.commands.library import LibraryCommand
+from musicmatch.commands.promote import PromoteCommand
 from musicmatch.commands.staging import StagingCommand
 from musicmatch.config import settings
 from musicmatch.tools.scanner import scan_library
@@ -244,6 +245,7 @@ class CommandRegistry:
             SearchCommand(),
             DownloadCommand(),
             StagingCommand(),
+            PromoteCommand(),
             LibraryCommand(),
             ClearCommand(),
             ExitCommand(),

@@ -26,6 +26,8 @@ class StagedTrack(BaseModel):
         default_factory=dict,
         description="Preserved version attributes (remastered, live, acoustic, collaborators)",
     )
+    promoted: bool = Field(default=False, description="Whether the track has been promoted to the Managed Library")
+    promoted_to: Optional[str] = Field(default=None, description="Destination path in the Managed Library once promoted")
 
 
 class DownloadSessionManifest(BaseModel):
@@ -36,3 +38,14 @@ class DownloadSessionManifest(BaseModel):
     query_or_url: str = Field(..., description="Original user prompt or URL")
     status: str = Field(default="ACTIVE", description="Session state ('ACTIVE', 'RESOLVED', 'DISCARDED')")
     tracks: List[StagedTrack] = Field(default_factory=list, description="Tracks acquired during this session")
+
+
+class PromotionResult(BaseModel):
+    """Outcome of promoting a single track from the Staging Area to the Managed Library."""
+
+    track_id: str = Field(..., description="ID of the staged track")
+    source_path: str = Field(..., description="Staged audio file path prior to transfer")
+    destination_path: Optional[str] = Field(default=None, description="Final canonical path in the Managed Library")
+    status: str = Field(..., description="Outcome: 'PROMOTED', 'COLLISION', 'NOT_FOUND', 'ERROR'")
+    error_message: Optional[str] = Field(default=None, description="Detail message for collisions or failures")
+

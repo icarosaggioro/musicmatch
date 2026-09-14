@@ -226,3 +226,23 @@ def test_render_library_status(capsys):
     assert "C:/Music/MusicMatch" in captured
     assert "Permitido (OK)" in captured
 
+
+def test_render_promotion_results(capsys):
+    ui = ConsoleUI()
+    r1 = MagicMock(status="PROMOTED", destination_path="C:/Music/track1.m4a", error_message=None)
+    r2 = MagicMock(status="COLLISION", destination_path="C:/Music/track2.m4a", error_message="File exists")
+    r3 = MagicMock(status="ERROR", destination_path=None, error_message="Missing disk file")
+
+    ui.render_promotion_results([r1, r2, r3])
+    captured = capsys.readouterr().out
+
+    assert "RESULTADO DA PROMOÇÃO PARA A BIBLIOTECA GERENCIADA" in captured
+    assert "PROMOVIDA COM SUCESSO" in captured
+    assert "C:/Music/track1.m4a" in captured
+    assert "COLISÃO DETECTADA" in captured
+    assert "File exists" in captured
+    assert "FALHA NA PROMOÇÃO" in captured
+    assert "Missing disk file" in captured
+    assert "1 promovida(s) | 1 colisão(ões) | 1 erro(s)" in captured
+
+

@@ -18,7 +18,7 @@ class StagingCommand(Command):
     def __init__(self) -> None:
         super().__init__(
             name="/staging",
-            description="Gerencia sessões da Staging Area: /staging [list | show <id> | discard <id>]",
+            description="Gerencia sessões da Staging Area: /staging [list | show <id> | promote <id> | discard <id>]",
         )
 
     def execute(self, args: List[str], ctx: CommandContext) -> bool:
@@ -56,6 +56,11 @@ class StagingCommand(Command):
                 ctx.ui.render_error(f"Sessão '{session_id}' não encontrada ou já descartada.")
             return True
 
+        if subcommand in ("promote", "promover"):
+            from musicmatch.commands.promote import PromoteCommand
+            return PromoteCommand().execute(args[1:], ctx)
+
         ctx.ui.render_error(f"Subcomando '{subcommand}' não reconhecido para /staging.")
-        ctx.ui.render_info("Uso: /staging list | /staging show <id> | /staging discard <id>")
+        ctx.ui.render_info("Uso: /staging list | /staging show <id> | /staging promote <id> | /staging discard <id>")
         return True
+
