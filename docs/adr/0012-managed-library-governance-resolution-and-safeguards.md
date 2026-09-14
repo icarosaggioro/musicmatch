@@ -60,3 +60,4 @@ Without strict governance, several system risks emerge:
 - **Fail-Fast Safety**: Invalid permissions or unwritable disks are intercepted during setup rather than failing mid-transfer during track promotion.
 - **System Protection**: Eliminates any possibility of users accidentally designating critical OS roots as music directories.
 - **Decoupled Relocation**: Users can freely redirect future downloads to new storage drives without incurring forced, risky bulk data migrations.
+
