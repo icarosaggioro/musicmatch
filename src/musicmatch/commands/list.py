@@ -3,7 +3,7 @@
 Lists indexed tracks in the library with interactive pagination and cancellation.
 """
 
-from typing import Dict, List
+from typing import List
 
 from musicmatch.commands.base import Command, CommandContext
 
@@ -14,23 +14,11 @@ class ListCommand(Command):
     DEFAULT_PAGE_SIZE = 20
 
     def __init__(self) -> None:
-        super().__init__(
-            name="/list",
-            description="Lista as músicas da biblioteca com paginação (padrão: 20): /list [tamanho_pagina]",
-            aliases=["/listar"],
-        )
-
-    def get_name(self) -> str:
-        return "/list"
-
-    def get_aliases(self) -> List[str]:
-        return ["/listar"]
-
-    def get_description(self) -> str:
-        return "Lista as músicas da biblioteca com paginação (padrão: 20): /list [tamanho_pagina]"
-
-    def get_default_error_messages(self) -> Dict[str, str]:
-        return {
+        super().__init__()
+        self._name = "/list"
+        self._description = "Lista as músicas da biblioteca com paginação (padrão: 20): /list [tamanho_pagina]"
+        self._aliases = ["/listar"]
+        self._default_error_messages = {
             "usage": "Uso: /list [tamanho_pagina]",
             "invalid_page_size": "O tamanho da página deve ser um número inteiro positivo.",
             "empty_library": "A biblioteca está vazia. Use '/scan <caminho>' para adicionar músicas.",

@@ -3,7 +3,7 @@
 Displays system operational status, active Gemini model, storage backend, and library statistics.
 """
 
-from typing import Dict, List
+from typing import List
 
 from musicmatch.commands.base import Command, CommandContext
 from musicmatch.config import settings
@@ -13,23 +13,11 @@ class StatusCommand(Command):
     """Exibe o status operacional do sistema, modelo conectado e banco de dados."""
 
     def __init__(self) -> None:
-        super().__init__(
-            name="/status",
-            description="Exibe informações do modelo de IA conectado e tamanho da biblioteca.",
-            aliases=["/info"],
-        )
-
-    def get_name(self) -> str:
-        return "/status"
-
-    def get_aliases(self) -> List[str]:
-        return ["/info"]
-
-    def get_description(self) -> str:
-        return "Exibe informações do modelo de IA conectado e tamanho da biblioteca."
-
-    def get_default_error_messages(self) -> Dict[str, str]:
-        return {
+        super().__init__()
+        self._name = "/status"
+        self._description = "Exibe informações do modelo de IA conectado e tamanho da biblioteca."
+        self._aliases = ["/info"]
+        self._default_error_messages = {
             "usage": "Uso: /status (não requer argumentos adicionais).",
         }
 

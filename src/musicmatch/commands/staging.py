@@ -16,27 +16,14 @@ class StagingCommand(Command):
     """Gerencia e inspeciona sessões de áudio pendentes na Staging Area."""
 
     def __init__(self) -> None:
-        super().__init__(
-            name="/staging",
-            description="Gerencia sessões da Staging Area: /staging [list | show <id> | promote <id> | discard <id>]",
-            aliases=["/quarentena"],
-        )
-
-    def get_name(self) -> str:
-        return "/staging"
-
-    def get_aliases(self) -> List[str]:
-        return ["/quarentena"]
-
-    def get_description(self) -> str:
-        return "Gerencia sessões da Staging Area: /staging [list | show <id> | promote <id> | discard <id>]"
-
-    def get_default_error_messages(self) -> Dict[str, str]:
-        return {
+        super().__init__()
+        self._name = "/staging"
+        self._description = "Gerencia sessões da Staging Area: /staging [list | show <id> | promote <id> | discard <id>]"
+        self._aliases = ["/quarentena"]
+        self._default_error_messages = {
             "usage": "Uso: /staging list | /staging show <id> | /staging promote <id> | /staging discard <id>",
             "missing_session_id": "Uso incorreto. Especifique o ID da sessão.",
         }
-
 
     def execute(self, args: List[str], ctx: CommandContext) -> bool:
         if not args or args[0].lower() == "list":

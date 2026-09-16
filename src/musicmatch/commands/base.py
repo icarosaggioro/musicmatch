@@ -2,7 +2,8 @@
 
 Follows the Command Pattern:
 - Encapsulates each user action in an isolated object.
-- Defines a standardized interface for canonical name, aliases, description, and standard error messages.
+- Defines and implements standard getters for name, aliases, description, and default error messages.
+- Subclasses assign values to internal members (_name, _description, _aliases, _default_error_messages).
 - Supports explicit dependency injection via CommandContext.
 """
 
@@ -33,19 +34,19 @@ class Command(ABC):
 
     def __init__(
         self,
-        name: Optional[str] = None,
-        description: Optional[str] = None,
+        name: str = "",
+        description: str = "",
         aliases: Optional[List[str]] = None,
+        default_error_messages: Optional[Dict[str, str]] = None,
     ) -> None:
-        self._name = name
-        self._description = description
-        self._aliases = aliases or []
+        self._name: str = name
+        self._description: str = description
+        self._aliases: List[str] = aliases or []
+        self._default_error_messages: Dict[str, str] = default_error_messages or {}
 
     def get_name(self) -> str:
         """Returns the canonical command identifier (e.g. '/help')."""
-        if self._name:
-            return self._name
-        raise NotImplementedError("Command subclass must implement get_name() or provide name in constructor.")
+        return self._name
 
     def get_aliases(self) -> List[str]:
         """Returns alternate keywords or shortcut aliases (e.g. ['sair', 'exit', 'quit', 'q'])."""
@@ -53,12 +54,12 @@ class Command(ABC):
 
     def get_description(self) -> str:
         """Returns human-readable description displayed in the help menu."""
-        if self._description:
-            return self._description
-        raise NotImplementedError("Command subclass must implement get_description() or provide description in constructor.")
+        return self._description
 
     def get_default_error_messages(self) -> Dict[str, str]:
         """Returns a mapping of standard error messages and usage guidance for this command."""
+        if self._default_error_messages:
+            return dict(self._default_error_messages)
         name = self.get_name()
         return {
             "usage": f"Uso incorreto do comando '{name}'. Digite '/help' para visualizar instruções.",
@@ -79,6 +80,11 @@ class Command(ABC):
     def description(self) -> str:
         """Property for backward compatibility and clean attribute access."""
         return self.get_description()
+
+    @property
+    def default_error_messages(self) -> Dict[str, str]:
+        """Property for backward compatibility and clean attribute access."""
+        return self.get_default_error_messages()
 
     @abstractmethod
     def execute(self, args: List[str], ctx: CommandContext) -> bool:

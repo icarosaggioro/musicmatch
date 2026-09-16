@@ -18,27 +18,14 @@ class PromoteCommand(Command):
     """Promove faixas da Staging Area para a Biblioteca Gerenciada."""
 
     def __init__(self) -> None:
-        super().__init__(
-            name="/promote",
-            description="Promove faixas da Staging Area para a Biblioteca Gerenciada: /promote <session_id> [--all | --track <id>]",
-            aliases=["/promover"],
-        )
-
-    def get_name(self) -> str:
-        return "/promote"
-
-    def get_aliases(self) -> List[str]:
-        return ["/promover"]
-
-    def get_description(self) -> str:
-        return "Promove faixas da Staging Area para a Biblioteca Gerenciada: /promote <session_id> [--all | --track <id>]"
-
-    def get_default_error_messages(self) -> Dict[str, str]:
-        return {
+        super().__init__()
+        self._name = "/promote"
+        self._description = "Promove faixas da Staging Area para a Biblioteca Gerenciada: /promote <session_id> [--all | --track <id>]"
+        self._aliases = ["/promover"]
+        self._default_error_messages = {
             "usage": "Uso incorreto. Especifique o ID da sessão: /promote <session_id> [--all | --track <id>]",
             "missing_session_id": "ID da sessão não informado.",
         }
-
 
     def _parse_options(self, args: List[str]) -> Tuple[str, Dict[str, Any]]:
         """Parses session ID and CLI flag options."""

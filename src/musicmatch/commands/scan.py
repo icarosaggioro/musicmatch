@@ -3,7 +3,7 @@
 Directly runs library scanning and audio indexing on a local filesystem directory.
 """
 
-from typing import Dict, List
+from typing import List
 
 from musicmatch.commands.base import Command, CommandContext
 from musicmatch.tools.scanner import scan_library
@@ -13,23 +13,11 @@ class ScanCommand(Command):
     """Executa a ferramenta de escaneamento diretamente pelo terminal sem acionar a LLM."""
 
     def __init__(self) -> None:
-        super().__init__(
-            name="/scan",
-            description="Varre um diretório de áudio diretamente: /scan <caminho_da_pasta>",
-            aliases=["/escanear", "/varrer"],
-        )
-
-    def get_name(self) -> str:
-        return "/scan"
-
-    def get_aliases(self) -> List[str]:
-        return ["/escanear", "/varrer"]
-
-    def get_description(self) -> str:
-        return "Varre um diretório de áudio diretamente: /scan <caminho_da_pasta>"
-
-    def get_default_error_messages(self) -> Dict[str, str]:
-        return {
+        super().__init__()
+        self._name = "/scan"
+        self._description = "Varre um diretório de áudio diretamente: /scan <caminho_da_pasta>"
+        self._aliases = ["/escanear", "/varrer"]
+        self._default_error_messages = {
             "usage": "Uso incorreto. Especifique o caminho da pasta: /scan <caminho>",
             "example": "Exemplo: /scan C:/Musicas",
         }

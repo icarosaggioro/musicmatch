@@ -3,7 +3,7 @@
 Clears terminal screen and re-renders application welcome banner.
 """
 
-from typing import Dict, List
+from typing import List
 
 from musicmatch.commands.base import Command, CommandContext
 
@@ -12,23 +12,11 @@ class ClearCommand(Command):
     """Limpa a tela do console."""
 
     def __init__(self) -> None:
-        super().__init__(
-            name="/clear",
-            description="Limpa a tela do terminal.",
-            aliases=["/cls", "/limpar"],
-        )
-
-    def get_name(self) -> str:
-        return "/clear"
-
-    def get_aliases(self) -> List[str]:
-        return ["/cls", "/limpar"]
-
-    def get_description(self) -> str:
-        return "Limpa a tela do terminal."
-
-    def get_default_error_messages(self) -> Dict[str, str]:
-        return {
+        super().__init__()
+        self._name = "/clear"
+        self._description = "Limpa a tela do terminal."
+        self._aliases = ["/cls", "/limpar"]
+        self._default_error_messages = {
             "usage": "Uso: /clear (não requer argumentos adicionais).",
         }
 
