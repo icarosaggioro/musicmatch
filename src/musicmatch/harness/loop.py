@@ -60,22 +60,42 @@ class Harness:
         """Inicia e mantém o Loop de Eventos (Event Loop) até solicitação de encerramento."""
         self.ui.render_banner(self.agent.model_name)
 
+        # Alerta de inicialização: verifica se há faixas pendentes na Staging Area
+        try:
+            from musicmatch.services.downloader import audio_downloader_service
+            active_sessions = audio_downloader_service.list_active_sessions()
+            if active_sessions:
+                self.ui.render_staging_alert(len(active_sessions))
+        except Exception:
+            pass
+
         running = True
-        while running:
+        try:
+            while running:
+                try:
+                    raw_input = input("MusicMatch > ").strip()
+                    if not raw_input:
+                        continue
+
+                    # Roteamento: se for comando estruturado do harness
+                    if self.registry.is_command(raw_input):
+                        running = self.registry.dispatch(raw_input, self.ctx)
+                    else:
+                        # Roteamento: mensagem livre direcionada ao Agente Inteligente
+                        self.agent.run(user_prompt=raw_input, log_callback=self.ui.render_event)
+
+                except (KeyboardInterrupt, EOFError):
+                    self.ui.render_goodbye()
+                    break
+                except Exception as e:
+                    self.ui.render_error(f"Ocorreu um erro durante a execução: {e}")
+        finally:
+            # Alerta de encerramento: lembra o usuário sobre faixas na Staging Area
             try:
-                raw_input = input("MusicMatch > ").strip()
-                if not raw_input:
-                    continue
+                from musicmatch.services.downloader import audio_downloader_service
+                active_sessions = audio_downloader_service.list_active_sessions()
+                if active_sessions:
+                    self.ui.render_staging_alert(len(active_sessions))
+            except Exception:
+                pass
 
-                # Roteamento: se for comando estruturado do harness
-                if self.registry.is_command(raw_input):
-                    running = self.registry.dispatch(raw_input, self.ctx)
-                else:
-                    # Roteamento: mensagem livre direcionada ao Agente Inteligente
-                    self.agent.run(user_prompt=raw_input, log_callback=self.ui.render_event)
-
-            except (KeyboardInterrupt, EOFError):
-                self.ui.render_goodbye()
-                break
-            except Exception as e:
-                self.ui.render_error(f"Ocorreu um erro durante a execução: {e}")

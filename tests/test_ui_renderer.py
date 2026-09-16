@@ -139,3 +139,90 @@ def test_prompt_pagination(monkeypatch):
 
     monkeypatch.setattr("builtins.input", mock_interrupt)
     assert ui.prompt_pagination() == "q"
+
+
+def test_render_search_candidates(capsys):
+    ui = ConsoleUI()
+    candidates = [
+        {"title": "Song 1", "channel": "Artist Channel", "duration": 185.0, "view_count": 1000},
+        {"title": "Song 2", "channel": "Other Channel", "duration": 0.0, "view_count": 0},
+    ]
+    ui.render_search_candidates(candidates)
+    captured = capsys.readouterr().out
+
+    assert "RESULTADOS DA BUSCA" in captured
+    assert "[1] Song 1" in captured
+    assert "03:05" in captured
+    assert "1,000 views" in captured
+    assert "[2] Song 2" in captured
+    assert "--:--" in captured
+
+
+def test_render_staging_sessions(capsys):
+    ui = ConsoleUI()
+    ui.render_staging_sessions([])
+    captured = capsys.readouterr().out
+    assert "Nenhuma sessão ativa" in captured
+
+    sess = MagicMock()
+    sess.session_id = "session_20260913_123456_abc"
+    sess.created_at = "2026-09-13T12:34:56.789Z"
+    sess.query_or_url = "https://youtube.com/watch?v=123"
+    sess.tracks = [MagicMock()]
+
+    ui.render_staging_sessions([sess])
+    captured = capsys.readouterr().out
+    assert "session_20260913_123456_abc" in captured
+    assert "Faixas: 1" in captured
+
+
+def test_render_staging_detail(capsys):
+    ui = ConsoleUI()
+    track = MagicMock()
+    track.artist = "Queen"
+    track.title = "Bohemian Rhapsody"
+    track.duration_seconds = 354.0
+    track.file_size = 10 * 1024 * 1024
+    track.format = "m4a"
+    track.file_path = "C:/staging/track.m4a"
+    track.extended_metadata = {"remastered": "2011 Remaster"}
+
+    sess = MagicMock()
+    sess.session_id = "session_1"
+    sess.query_or_url = "queen"
+    sess.status = "ACTIVE"
+    sess.tracks = [track]
+
+    ui.render_staging_detail(sess)
+    captured = capsys.readouterr().out
+    assert "DETALHES DA SESSÃO [session_1]" in captured
+    assert "Queen - Bohemian Rhapsody [remastered: 2011 Remaster]" in captured
+    assert "M4A" in captured
+    assert "05:54" in captured
+    assert "10.00 MB" in captured
+
+
+def test_render_staging_alert(capsys):
+    ui = ConsoleUI()
+    ui.render_staging_alert(0)
+    assert capsys.readouterr().out == ""
+
+    ui.render_staging_alert(3)
+    captured = capsys.readouterr().out
+    assert "ALERTA STAGING: Você possui 3 sessões ativas" in captured
+    assert "/staging list" in captured
+
+
+def test_render_library_status(capsys):
+    ui = ConsoleUI()
+    info = {
+        "Caminho Base": "C:/Music/MusicMatch",
+        "Acesso de Escrita": "Permitido (OK)",
+        "Origem": "Default de Sistema",
+    }
+    ui.render_library_status(info)
+    captured = capsys.readouterr().out
+    assert "BIBLIOTECA GERENCIADA (Managed Library)" in captured
+    assert "C:/Music/MusicMatch" in captured
+    assert "Permitido (OK)" in captured
+
