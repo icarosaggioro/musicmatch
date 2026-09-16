@@ -59,7 +59,7 @@ class ConsoleUI:
         print("-" * 72)
         for cmd in commands:
             aliases_str = f" (aliases: {', '.join(cmd.aliases)})" if cmd.aliases else ""
-            print(f"  {cmd.name:<8} : {cmd.description}{aliases_str}")
+            print(f"  {cmd.name:<10} : {cmd.description}{aliases_str}")
         print("-" * 72)
         print("💡 Dica: Mensagens normais sem barra '/' são enviadas diretamente ao Agente de IA.\n")
 
