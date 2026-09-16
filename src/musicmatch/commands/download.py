@@ -6,7 +6,7 @@ Follows ADR 0010, ADR 0011, and ADR 0012:
 - Downloads directly into isolated staging sessions.
 """
 
-from typing import List, Tuple
+from typing import Dict, List, Tuple
 
 from musicmatch.commands.base import Command, CommandContext
 from musicmatch.services.downloader import audio_downloader_service
@@ -21,6 +21,23 @@ class DownloadCommand(Command):
             description="Baixa áudio da web para a Staging Area: /download <url|busca> [--format mp3]",
             aliases=["/baixar"],
         )
+
+    def get_name(self) -> str:
+        return "/download"
+
+    def get_aliases(self) -> List[str]:
+        return ["/baixar"]
+
+    def get_description(self) -> str:
+        return "Baixa áudio da web para a Staging Area: /download <url|busca> [--format mp3]"
+
+    def get_default_error_messages(self) -> Dict[str, str]:
+        return {
+            "usage": "Uso incorreto. Especifique uma URL ou termo de busca: /download <url|busca>",
+            "missing_query": "Nenhum termo de busca ou URL fornecido.",
+            "invalid_choice": "Entrada inválida. Digite apenas o número correspondente à música.",
+        }
+
 
     def _parse_args(self, args: List[str]) -> Tuple[str, str, bool]:
         """Parses options (--format, --playlist) from positional query/URL arguments."""

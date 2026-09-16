@@ -1,0 +1,74 @@
+"""Scan Command (/scan).
+
+Directly runs library scanning and audio indexing on a local filesystem directory.
+"""
+
+from typing import Dict, List
+
+from musicmatch.commands.base import Command, CommandContext
+from musicmatch.tools.scanner import scan_library
+
+
+class ScanCommand(Command):
+    """Executa a ferramenta de escaneamento diretamente pelo terminal sem acionar a LLM."""
+
+    def __init__(self) -> None:
+        super().__init__(
+            name="/scan",
+            description="Varre um diretório de áudio diretamente: /scan <caminho_da_pasta>",
+            aliases=["/escanear", "/varrer"],
+        )
+
+    def get_name(self) -> str:
+        return "/scan"
+
+    def get_aliases(self) -> List[str]:
+        return ["/escanear", "/varrer"]
+
+    def get_description(self) -> str:
+        return "Varre um diretório de áudio diretamente: /scan <caminho_da_pasta>"
+
+    def get_default_error_messages(self) -> Dict[str, str]:
+        return {
+            "usage": "Uso incorreto. Especifique o caminho da pasta: /scan <caminho>",
+            "example": "Exemplo: /scan C:/Musicas",
+        }
+
+    def execute(self, args: List[str], ctx: CommandContext) -> bool:
+        if not args:
+            errors = self.get_default_error_messages()
+            ctx.ui.render_error(errors["usage"])
+            ctx.ui.render_info(errors["example"])
+            return True
+
+        path = " ".join(args)
+        ctx.ui.render_info(f"Iniciando varredura determinística direta em '{path}'...")
+        result = scan_library(path=path)
+
+        if result.get("status") == "error":
+            ctx.ui.render_error(result.get("message", "Erro ao executar varredura."))
+            return True
+
+        total_scanned = result.get("total_files_scanned", 0)
+        tracks_indexed = result.get("tracks_indexed", 0)
+        tracks_added = result.get("tracks_added", tracks_indexed)
+        tracks_updated = result.get("tracks_updated", 0)
+        tracks_unchanged = result.get("tracks_unchanged", 0)
+        tracks_missing = result.get("tracks_missing", 0)
+        errors_count = result.get("errors_count", 0)
+        duration_ms = result.get("duration_ms", 0.0)
+
+        ctx.ui.render_success(
+            f"Varredura concluída: {total_scanned} arquivo(s) processado(s) em {duration_ms:.1f}ms."
+        )
+        ctx.ui.render_info(
+            f"  [+] {tracks_added} nova(s) | [~] {tracks_updated} atualizada(s) | [=] {tracks_unchanged} inalterada(s) (Stat-Cache)"
+        )
+        if tracks_missing > 0:
+            ctx.ui.render_warning(f"  [!] {tracks_missing} faixa(s) marcada(s) como ausente(s) no disco (Soft-Delete).")
+        if errors_count > 0:
+            ctx.ui.render_warning(f"  [!] {errors_count} arquivo(s) com erro ignorado(s).")
+
+        total_tracks = ctx.db.count() if hasattr(ctx.db, "count") else result.get("database_total_tracks", 0)
+        ctx.ui.render_info(f"Total na biblioteca agora: {total_tracks} faixa(s).")
+        return True

@@ -99,7 +99,7 @@ def test_dispatch_scan_with_argument(mock_context, monkeypatch):
         "errors_count": 1,
         "duration_ms": 12.5
     })
-    monkeypatch.setattr("musicmatch.commands.registry.scan_library", mock_scan)
+    monkeypatch.setattr("musicmatch.commands.scan.scan_library", mock_scan)
     
     should_continue = registry.dispatch("/scan C:/Audio/Albuns do Rock", mock_context)
     assert should_continue is True
@@ -115,7 +115,7 @@ def test_dispatch_scan_with_error(mock_context, monkeypatch):
         "status": "error",
         "message": "Diretório não encontrado."
     })
-    monkeypatch.setattr("musicmatch.commands.registry.scan_library", mock_scan)
+    monkeypatch.setattr("musicmatch.commands.scan.scan_library", mock_scan)
     
     should_continue = registry.dispatch("/scan C:/PathInvalido", mock_context)
     assert should_continue is True
@@ -287,3 +287,123 @@ def test_dispatch_list_with_type_error_fallback(mock_context):
     should_continue = registry.dispatch("/list", mock_context)
     assert should_continue is True
     mock_context.ui.render_track_page.assert_called_once()
+
+
+def test_command_interface_contract():
+    """Verify that all registered commands fulfill the standardized Command interface."""
+    registry = CommandRegistry()
+    commands = registry.get_all_commands()
+    assert len(commands) == 11
+
+    for cmd in commands:
+        # Canonical name
+        name = cmd.get_name()
+        assert isinstance(name, str) and name.startswith("/"), f"{cmd} get_name() invalid"
+        assert cmd.name == name
+
+        # Aliases
+        aliases = cmd.get_aliases()
+        assert isinstance(aliases, list), f"{cmd} get_aliases() must return a list"
+        assert cmd.aliases == aliases
+
+        # Description
+        desc = cmd.get_description()
+        assert isinstance(desc, str) and len(desc.strip()) > 0, f"{cmd} get_description() invalid"
+        assert cmd.description == desc
+
+        # Error messages
+        errors = cmd.get_default_error_messages()
+        assert isinstance(errors, dict), f"{cmd} get_default_error_messages() must return a dict"
+        assert "usage" in errors, f"{cmd} missing 'usage' in get_default_error_messages()"
+
+
+def test_commands_alphabetical_order():
+    """Verify that get_all_commands() returns commands sorted strictly in alphabetical order."""
+    registry = CommandRegistry()
+    commands = registry.get_all_commands()
+    names = [c.get_name() for c in commands]
+
+    expected_sorted = sorted(names, key=lambda n: n.lower())
+    assert names == expected_sorted
+    assert names == [
+        "/clear",
+        "/download",
+        "/exit",
+        "/help",
+        "/library",
+        "/list",
+        "/promote",
+        "/scan",
+        "/search",
+        "/staging",
+        "/status",
+    ]
+
+
+def test_unified_lookup_map_hashmap():
+    """Verify that CommandRegistry maintains an O(1) unified lookup map for all triggers and aliases."""
+    registry = CommandRegistry()
+    lookup_map = registry.lookup_map
+    assert isinstance(lookup_map, dict)
+
+    # Every command must be reachable via its canonical name (lowercase)
+    for cmd in registry.get_all_commands():
+        canonical_key = cmd.get_name().lower()
+        assert canonical_key in lookup_map
+        assert lookup_map[canonical_key] is cmd
+
+        # Every alias must also be reachable
+        for alias in cmd.get_aliases():
+            alias_key = alias.lower()
+            assert alias_key in lookup_map
+            assert lookup_map[alias_key] is cmd
+
+    # Specific check for exit shortcuts
+    for exit_alias in ["sair", "exit", "quit", "q"]:
+        assert exit_alias in lookup_map
+        assert lookup_map[exit_alias].get_name() == "/exit"
+
+
+def test_scan_with_real_media_files(tmp_path, mock_context):
+    """Verify /scan and scan_library using the real _MEDIA dataset (A-HA and Ottmar Liebert)."""
+    from pathlib import Path
+    from musicmatch.services.library import LibraryService
+    from musicmatch.storage.sqlite_repo import SQLiteTrackRepository
+    from musicmatch.tools.scanner import scan_library
+
+    aha_dir = Path(__file__).parent / "_MEDIA" / "Artists" / "A-HA"
+    if not aha_dir.exists():
+        pytest.skip("tests/_MEDIA/Artists/A-HA not found")
+
+    test_db_path = tmp_path / "real_media_test.db"
+    repo = SQLiteTrackRepository(db_path=str(test_db_path))
+    svc = LibraryService(repository=repo)
+
+    result = scan_library(path=str(aha_dir), service=svc)
+    assert result["status"] == "success"
+    assert result["total_files_scanned"] == 1
+    assert result["tracks_indexed"] == 1
+    assert result["tracks_added"] == 1
+    assert svc.count_tracks() == 1
+
+    # Verify ID3 metadata extraction from real media files
+    tracks = svc.get_all_tracks()
+    assert len(tracks) == 1
+    aha_track = tracks[0]
+    assert aha_track.title == "Take on me"
+    assert aha_track.artist == "A-Ha"
+    assert aha_track.album == "Hunting High and Low"
+    assert aha_track.duration_seconds > 0
+
+    # Also test multi-track album if present (Ottmar Liebert & Luna Negra)
+    ottmar_dir = Path(__file__).parent / "_MEDIA" / "Artists" / "Ottmar Liebert & Luna Negra"
+    if ottmar_dir.exists():
+        result_ottmar = scan_library(path=str(ottmar_dir), service=svc)
+        assert result_ottmar["status"] == "success"
+        assert result_ottmar["total_files_scanned"] == 12
+        assert result_ottmar["tracks_indexed"] == 12
+        assert result_ottmar["tracks_added"] == 12
+        assert svc.count_tracks() == 13
+
+    repo.close()
+

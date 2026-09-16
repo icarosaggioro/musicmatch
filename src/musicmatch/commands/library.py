@@ -6,7 +6,7 @@ Follows ADR 0012:
 """
 
 from pathlib import Path
-from typing import List
+from typing import Dict, List
 
 from musicmatch.commands.base import Command, CommandContext
 from musicmatch.services.location import library_location_manager
@@ -21,6 +21,22 @@ class LibraryCommand(Command):
             description="Exibe ou altera o diretório da Biblioteca Gerenciada: /library [set-path <caminho>]",
             aliases=["/biblioteca"],
         )
+
+    def get_name(self) -> str:
+        return "/library"
+
+    def get_aliases(self) -> List[str]:
+        return ["/biblioteca"]
+
+    def get_description(self) -> str:
+        return "Exibe ou altera o diretório da Biblioteca Gerenciada: /library [set-path <caminho>]"
+
+    def get_default_error_messages(self) -> Dict[str, str]:
+        return {
+            "usage": "Uso: /library  ou  /library set-path <novo_caminho>",
+            "missing_path": "Uso incorreto. Especifique o novo caminho: /library set-path <caminho>",
+        }
+
 
     def execute(self, args: List[str], ctx: CommandContext) -> bool:
         if not args or args[0].lower() in ("path", "status", "info"):
