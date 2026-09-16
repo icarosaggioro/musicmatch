@@ -30,6 +30,7 @@ def test_command_registry_defaults():
     assert "/search" in names
     assert "/download" in names
     assert "/staging" in names
+    assert "/promote" in names
     assert "/library" in names
     assert "/clear" in names
     assert "/exit" in names
