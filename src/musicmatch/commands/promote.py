@@ -152,3 +152,4 @@ class PromoteCommand(Command):
 
         ctx.ui.render_promotion_results(results)
         return True
+

@@ -26,3 +26,13 @@ target/
 *.db
 *.sqlite3
 temp_audio/
+
+# Dados de Execução e Staging Local (Runtime Data)
+data/*
+!data/.gitkeep
+
+# Arquivos parciais e temporários de download
+*.part
+*.ytdl
+*.temp
+

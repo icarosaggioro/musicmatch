@@ -196,3 +196,4 @@ def test_staging_promote_delegation(mock_context):
         res = staging_cmd.execute(["promote", "session_test", "--all"], mock_context)
         assert res is True
         mock_execute.assert_called_once_with(["session_test", "--all"], mock_context)
+

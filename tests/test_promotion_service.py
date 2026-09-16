@@ -332,3 +332,4 @@ def test_promote_session_batch(promotion_env) -> None:
         manifest = downloader.get_session(session.session_id)
         assert manifest.status == "RESOLVED"
         assert all(t.promoted for t in manifest.tracks)
+
