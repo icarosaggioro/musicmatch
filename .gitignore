@@ -26,6 +26,8 @@ target/
 *.db
 *.sqlite3
 temp_audio/
+_MEDIA/
+tests/_MEDIA/
 
 # Dados de Execução e Staging Local (Runtime Data)
 data/*

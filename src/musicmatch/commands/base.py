@@ -1,57 +1,100 @@
-"""Padrão de Projeto Command (Command Pattern) para o Harness do MusicMatch.
+"""Command Design Pattern for the MusicMatch REPL Harness.
 
-CONCEITO ARQUITETURAL DIDÁTICO:
---------------------------------
-O 'Command Pattern' transforma uma ação em um objeto isolado contendo todas as
-informações necessárias para disparar a execução.
-
-Por que usamos isso em vez de um 'if/elif/else' gigante no loop?
-1. Open/Closed Principle (Princípio Aberto/Fechado): Para criar um novo comando
-   (ex: '/playlist', '/export', '/benchmark'), criamos uma nova classe derivada de 'Command'
-   e a registramos, sem jamais precisar alterar o código do loop de eventos.
-2. Injeção de Contexto ('CommandContext'): Cada comando recebe tudo o que precisa
-   (banco de dados, UI, agente de IA) de maneira explícita, evitando acoplamento
-   a singletons ou variáveis globais.
-3. Testabilidade: Podemos testar comandos individualmente passando contextos simulados (mocks).
+Follows the Command Pattern:
+- Encapsulates each user action in an isolated object.
+- Defines and implements standard getters for name, aliases, description, and default error messages.
+- Subclasses assign values to internal members (_name, _description, _aliases, _default_error_messages).
+- Supports explicit dependency injection via CommandContext.
 """
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import Any, List
+from typing import Any, Dict, List, Optional
+
 
 @dataclass
 class CommandContext:
-    """Contexto de execução compartilhado fornecido a todos os comandos.
-    
+    """Shared execution context provided to all commands.
+
     Attributes:
-        ui: Instância do renderizador de interface para exibir mensagens.
-        agent: Instância do agente de IA para consultas ou verificações.
-        db: Instância do banco de dados (atualmente MockDatabase, futuramente SQLite).
-        registry: Referência ao registro geral de comandos (usado por /help).
+        ui: Console UI renderer instance for displaying messages and prompts.
+        agent: AI Agent instance for intelligent queries or verification.
+        db: SQLite or mock database repository instance.
+        registry: Reference to the CommandRegistry catalog (e.g. consumed by /help).
     """
+
     ui: Any
     agent: Any
     db: Any
     registry: Any
 
-class Command(ABC):
-    """Classe base abstrata para todos os comandos de controle do sistema."""
 
-    def __init__(self, name: str, description: str, aliases: List[str] = None) -> None:
-        self.name = name
-        self.description = description
-        self.aliases = aliases or []
+class Command(ABC):
+    """Abstract base class for all system control commands."""
+
+    def __init__(
+        self,
+        name: str = "",
+        description: str = "",
+        aliases: Optional[List[str]] = None,
+        default_error_messages: Optional[Dict[str, str]] = None,
+    ) -> None:
+        self._name: str = name
+        self._description: str = description
+        self._aliases: List[str] = aliases or []
+        self._default_error_messages: Dict[str, str] = default_error_messages or {}
+
+    def get_name(self) -> str:
+        """Returns the canonical command identifier (e.g. '/help')."""
+        return self._name
+
+    def get_aliases(self) -> List[str]:
+        """Returns alternate keywords or shortcut aliases (e.g. ['sair', 'exit', 'quit', 'q'])."""
+        return list(self._aliases)
+
+    def get_description(self) -> str:
+        """Returns human-readable description displayed in the help menu."""
+        return self._description
+
+    def get_default_error_messages(self) -> Dict[str, str]:
+        """Returns a mapping of standard error messages and usage guidance for this command."""
+        if self._default_error_messages:
+            return dict(self._default_error_messages)
+        name = self.get_name()
+        return {
+            "usage": f"Uso incorreto do comando '{name}'. Digite '/help' para visualizar instruções.",
+            "invalid_args": f"Argumentos inválidos para '{name}'.",
+        }
+
+    @property
+    def name(self) -> str:
+        """Property for backward compatibility and clean attribute access."""
+        return self.get_name()
+
+    @property
+    def aliases(self) -> List[str]:
+        """Property for backward compatibility and clean attribute access."""
+        return self.get_aliases()
+
+    @property
+    def description(self) -> str:
+        """Property for backward compatibility and clean attribute access."""
+        return self.get_description()
+
+    @property
+    def default_error_messages(self) -> Dict[str, str]:
+        """Property for backward compatibility and clean attribute access."""
+        return self.get_default_error_messages()
 
     @abstractmethod
     def execute(self, args: List[str], ctx: CommandContext) -> bool:
-        """Executa a lógica do comando.
+        """Executes the command logic.
 
         Args:
-            args: Argumentos passados após o nome do comando (ex: ['C:/Musicas'] para '/scan C:/Musicas').
-            ctx: Contexto do sistema com acesso à UI, Banco e Agente.
+            args: Positional argument tokens passed after the command name.
+            ctx: Execution context providing UI, Database, Agent, and Registry access.
 
         Returns:
-            bool: True se o loop de eventos deve continuar rodando;
-                  False se o comando solicitar a finalização do programa (ex: /exit).
+            bool: True to keep REPL event loop running; False to request application exit.
         """
         pass
