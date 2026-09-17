@@ -24,12 +24,12 @@ class StatusCommand(Command):
     def execute(self, args: List[str], ctx: CommandContext) -> bool:
         db_type = type(ctx.db).__name__
         status_info = {
-            "Modelo Gemini Ativo": ctx.agent.model_name,
-            "Total de Faixas no Banco": f"{ctx.db.count()} faixa(s)",
-            "Nível de Log": settings.LOG_LEVEL,
+            "Ambiente": "Python 3.14 (Clean Architecture + DDD)",
             "Camada de Armazenamento": f"{db_type} ({'FTS5 Ativo' if 'SQLite' in db_type else 'Memória'})",
             "Arquivo de Banco de Dados": getattr(ctx.db, "db_path", "Em Memória"),
-            "Ambiente": "Python 3.14 (Clean Architecture + DDD)",
+            "Nível de Log": settings.LOG_LEVEL,
+            "Modelo Gemini Ativo": ctx.agent.model_name,
+            "Total de Faixas no Banco": f"{ctx.db.count()} faixa(s)",
         }
         if hasattr(ctx.db, "get_stats"):
             stats = ctx.db.get_stats()
