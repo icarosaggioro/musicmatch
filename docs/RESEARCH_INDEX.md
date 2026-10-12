@@ -129,11 +129,12 @@ Este documento serve como mapa de referência rápida para todos os tópicos con
 * **Decisão Arquitetural de Integração**: [ADR 0010 - Estratégia de Integração do yt-dlp, Gestão de Dependências e Empacotamento de CI/CD](file:///c:/WebApps/musicmatch/docs/adr/0010-yt-dlp-integration-and-packaging-strategy.md).
 * **Decisão Arquitetural da Frente 1**: [ADR 0011 - Web Ingestion Pipeline, Two-Stage Staging Architecture, and Managed Library Taxonomy](file:///c:/WebApps/musicmatch/docs/adr/0011-web-ingestion-two-stage-staging-and-managed-library-taxonomy.md).
 * **Decisão de Governança da Biblioteca**: [ADR 0012 - Managed Library Location Governance, Cross-Platform Resolution, and Write-Access Safeguards](file:///c:/WebApps/musicmatch/docs/adr/0012-managed-library-governance-resolution-and-safeguards.md).
+* **Decisão de Manutenção, Consolidação e Deleção**: [ADR 0013 - Library Maintenance, Consolidation Imports, and Two-Tier Deletion Safeguards](file:///c:/WebApps/musicmatch/docs/adr/0013-library-maintenance-consolidation-and-deletion-safeguards.md).
 * **Frentes Estratégicas Mapeadas**:
   1. **Frente 1: Ingestão Web e Download Seguro com `yt-dlp`**: Integração assíncrona, blindagem contra SSRF/DoS, extração de áudio para MP3/FLAC e catalogação automática.
   2. **Frente 2: Motor de DSP Acústico e Fingerprinting Real**: Chromaprint via `pyacoustid`, medição de loudness EBU R128/LUFS, BPM acústico e Camelot Wheel.
   3. **Frente 3: Reprodução de Áudio Integrada no Terminal (Player Engine)**: Player local concorrente com comandos de transporte (`/play`, `/pause`, `/resume`, `/stop`) e progresso visual.
   4. **Frente 4: Curadoria por "Vibe" & Busca Semântica com Google Gemini**: Enriquecimento de humor/mood em lote e busca em linguagem natural.
-  5. **Frente 5: Auditor de Biblioteca & Purge Seguro (ADR 0009)**: Comando `/prune` com senha de segurança e reconciliação rápida de faixas movidas.
+  5. **Frente 5: Auditor de Biblioteca, Consolidação & Deleção Segura (ADR 0009 & ADR 0013)**: Comandos `/unindex`, `/delete` (com send2trash e confirmação dupla), `/audit` (dashboard e deduplicação inteligente), `/retag` e `/library import`.
   6. **Frente 6: Sessão Conversacional Multi-Turn no REPL**: Conversa contínua com estado via `google-genai` e suporte a subagentes autônomos.
 

@@ -164,32 +164,44 @@ Aproveitar os modelos multimodais da família Gemini (`gemini-3.6-flash` / `gemi
 
 ---
 
-### Frente 5: Auditor de Biblioteca & Purge Seguro (ADR 0009)
+### Frente 5: Auditor de Biblioteca, Consolidação & Deleção Segura (ADR 0009 & ADR 0013)
 
 #### Objetivo
-Completar as especificações do [ADR 0009](file:///c:/WebApps/musicmatch/docs/adr/0009-library-idempotency-stat-cache-and-lifecycle-policy.md) que tratam da integridade física de grandes coleções e expurgo auditado de arquivos ausentes.
+Implementar a governança completa de manutenção física e lógica da biblioteca, abrangendo consolidação de diretórios externos, desindexação do banco, deleção física segura com Lixeira do SO, auditoria analítica e edição direta de tags.
 
 #### Fundamentação Técnica
-Conforme definido no ADR 0009:
-1. **Expurgo em Duas Etapas com Confirmação Rígida**:
-   - Músicas ausentes no disco passam para o estado `MISSING` e nunca são excluídas sozinhas pelo scanner.
-   - O expurgo físico do catálogo requer intervenção deliberada do usuário, protegida por frase de segurança.
-2. **Heurística de Reconciliação Rápida de Arquivos Movidos**:
-   - Se o usuário renomear uma pasta ou mover arquivos no Windows Explorer, o próximo escaneamento identifica correspondência exata por `file_size`, duração e título, migrando o registro antigo para o novo caminho sem perder métricas pré-calculadas.
-3. **Auditoria de Integridade**:
-   - Diagnóstico de arquivos com bitrate muito baixo, metadados nulos ou corrupção de tags.
+Conforme especificado no [ADR 0009](adr/0009-library-idempotency-stat-cache-and-lifecycle-policy.md) e no [ADR 0013](adr/0013-library-maintenance-consolidation-and-deletion-safeguards.md):
+1. **Separação Rígida entre Desindexar e Apagar**:
+   - `/unindex`: Remove apenas os metadados e índice FTS5 do SQLite, preservando o arquivo no disco.
+   - `/delete`: Move o arquivo físico para a Lixeira do Sistema Operacional (`send2trash`) e expurga os registros do banco.
+2. **Salvaguardas em Dois Níveis**:
+   - **Faixa Única**: Confirmação interativa exibindo metadados, com `External Storage Warning` destacado caso a faixa resida fora da `Managed Library Directory`.
+   - **Lotes / Conjuntos**: Exige o *Count-Verification Gate*, forçando o usuário a digitar o número exato de arquivos afetados antes de iniciar o descarte.
+3. **Consolidação Física via `/library import`**:
+   - Permite importar pastas externas para a taxonomia padrão (`Artists/<Artist>/<Album>/`) via `--copy` ou `--move`.
+   - Em modo `--move`, aplica o *Per-Item Pre-Flight Isolation*, testando leitura e permissão de exclusão na origem arquivo por arquivo (arquivos bloqueados permanecem intactos na pasta de origem).
+4. **Painel Diagnóstico e Deduplicação (`/audit`)**:
+   - Dashboard com total de faixas `AVAILABLE` vs `MISSING`, duplicatas, faixas sem tags e bitrates baixos (< 128 kbps).
+   - `/audit duplicates`: Resolução guiada com heurística que recomenda manter a gravação de maior fidelidade acústica.
+5. **Edição Física de Tags e Reorganização**:
+   - `/retag`: Grava metadados diretamente no arquivo via `mediafile` e atualiza o banco instantaneamente.
+   - `/library reorganize`: Realinha a estrutura de pastas na `Managed Library` para refletir tags corrigidas.
 
 #### Componentes a Criar / Modificar
-* **Comando `/prune`**:
-  - Protocolo de confirmação: exige que o usuário digite a chave exata `PLEASEPRETTYPLEASE` para remover definitivamente faixas com `status = 'MISSING'`.
-* **Comando `/audit`**:
-  - Exibe um painel analítico com:
-    - Total de faixas `AVAILABLE` vs `MISSING`.
-    - Faixas sem artista ou título definido.
-    - Faixas potencialmente duplicadas (mesmo título/artista ou mesmo hash acústico).
-    - Faixas com tags corrompidas encontradas em varreduras anteriores.
-* **Método de Reconciliação no `SQLiteTrackRepository`**:
-  - `reconcile_relocated_tracks()` para restaurar status e atualizar caminhos de forma segura.
+* **`musicmatch.commands.unindex` (`UnindexCommand`)**:
+  - `/unindex <id | query | --missing>`: Desindexação cirúrgica no banco de dados.
+* **`musicmatch.commands.delete` (`DeleteCommand`)**:
+  - `/delete <id | query | --missing>`: Deleção com integração `send2trash`, alerta para pastas externas e *Count-Verification Gate*.
+* **`musicmatch.commands.audit` (`AuditCommand`)**:
+  - `/audit`: Painel geral.
+  - `/audit duplicates`: Comparador e resolvedor inteligente de duplicatas.
+  - `/audit prune`: Expurgo de faixas `MISSING`.
+* **`musicmatch.commands.retag` (`RetagCommand`)**:
+  - `/retag <id> [--artist] [--title] [--album] [--genre]`.
+* **Subcomandos em `LibraryCommand`**:
+  - `/library import <path> [--copy | --move]` e `/library reorganize`.
+* **Serviços de Domínio**:
+  - `LibraryMaintenanceService`: Encapsula a lógica de importação segura, pre-flight check, unindex e delete com `send2trash`.
 
 ---
 

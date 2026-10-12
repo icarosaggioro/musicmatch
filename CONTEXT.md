@@ -131,6 +131,56 @@ _Avoid_: Open filesystem, root acceptance
 The operational safety policy that halts track promotion and retains staged files safely in the Staging Area whenever the target physical drive or network mount is unreachable.
 _Avoid_: Silent failure, fallback dump
 
+### Library Maintenance & Lifecycle Domain
+
+**Unindex**:
+The non-destructive removal of a track's metadata record from the database catalog while leaving the backing audio file on disk completely untouched.
+_Avoid_: Remove track, delete record, wipe
+
+**Physical Delete**:
+An administrative operation that moves the backing audio file to the Operating System Trash/Recycle Bin and cascades deletion across all database records and search indices.
+_Avoid_: Hard delete, silent unlink, permanent wipe
+
+**Double Confirmation Protocol**:
+An explicit safety barrier requiring interactive confirmation before executing bulk physical deletions or irreversible batch modifications across multiple tracks.
+_Avoid_: Auto-confirm, single-click delete, silent purge
+
+**Library Import**:
+The formal ingestion of external audio directories into the canonical Managed Library Directory, reorganizing files into the standard taxonomy via copy or move modes.
+_Avoid_: Bulk scan, file transfer, library merge
+
+**Source Deletion Pre-Flight Check**:
+An atomic permission verification on source audio files and parent directories prior to executing move-based imports, ensuring complete transfer without orphaned files.
+_Avoid_: Safe move, move check, write test
+
+**Library Reorganization**:
+The physical realignment and renaming of audio files within the Managed Library Directory to reflect newly updated artist or album metadata.
+_Avoid_: File sorting, folder cleanup, disk rename
+
+**Track Retagging**:
+The operation of writing updated metadata tags directly into an audio file on disk via mediafile while atomically updating the database catalog and FTS5 index.
+_Avoid_: Tag editing, tag patch, rename
+
+**Send-to-Trash Deletion**:
+The safe file elimination mechanism routing physical audio files to the host Operating System Recycle Bin rather than unrecoverable filesystem unlinking.
+_Avoid_: Hard delete, permanent unlink, silent erase
+
+**External Storage Warning**:
+A highlighted alert rendered whenever an administrative mutation or deletion targets an audio file residing outside the Managed Library Directory in user personal directories.
+_Avoid_: Generic prompt, blind confirm
+
+**Count-Verification Gate**:
+The double-confirmation requirement forcing the user to type the exact integer count of affected tracks to unlock batch physical deletions.
+_Avoid_: Simple confirm, y/n prompt for batch
+
+**Per-Item Pre-Flight Isolation**:
+The non-destructive transfer principle where each individual file's read, write, and source-deletion permissions are validated before relocating it, leaving locked files untouched in their source directory.
+_Avoid_: All-or-nothing move, blind transfer
+
+**Audit Dashboard**:
+The diagnostic summary view rendered by `/audit` cataloging library health indicators, including duplicates, missing files, untagged tracks, and degraded bitrates.
+_Avoid_: Log printout, error dump
+
 ### Agent & AI Domain
 
 **Orchestrator**:
