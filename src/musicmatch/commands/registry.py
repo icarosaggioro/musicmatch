@@ -16,6 +16,7 @@ from musicmatch.commands.exit import ExitCommand
 from musicmatch.commands.help import HelpCommand
 from musicmatch.commands.library import LibraryCommand
 from musicmatch.commands.list import ListCommand
+from musicmatch.commands.model import ModelCommand
 from musicmatch.commands.promote import PromoteCommand
 from musicmatch.commands.scan import ScanCommand
 from musicmatch.commands.search import SearchCommand
@@ -42,6 +43,7 @@ class CommandRegistry:
             HelpCommand(),
             LibraryCommand(),
             ListCommand(),
+            ModelCommand(),
             PromoteCommand(),
             ScanCommand(),
             SearchCommand(),

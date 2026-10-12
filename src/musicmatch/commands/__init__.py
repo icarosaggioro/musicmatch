@@ -7,6 +7,7 @@ from musicmatch.commands.exit import ExitCommand
 from musicmatch.commands.help import HelpCommand
 from musicmatch.commands.library import LibraryCommand
 from musicmatch.commands.list import ListCommand
+from musicmatch.commands.model import ModelCommand
 from musicmatch.commands.promote import PromoteCommand
 from musicmatch.commands.registry import CommandRegistry
 from musicmatch.commands.scan import ScanCommand
@@ -24,6 +25,7 @@ __all__ = [
     "HelpCommand",
     "LibraryCommand",
     "ListCommand",
+    "ModelCommand",
     "PromoteCommand",
     "ScanCommand",
     "SearchCommand",

@@ -39,6 +39,17 @@ class SingleTurnAgent:
             "search_tracks": search_tracks,
         }
 
+    def get_model(self) -> str:
+        """Retorna o identificador do modelo Gemini atualmente em uso."""
+        return self.model_name
+
+    def set_model(self, model_name: str) -> None:
+        """Altera dinamicamente o modelo Gemini utilizado pelo agente."""
+        cleaned = model_name.strip() if model_name else ""
+        if not cleaned:
+            raise ValueError("O nome do modelo não pode ser vazio.")
+        self.model_name = cleaned
+
     def run(self, user_prompt: str, log_callback: Optional[Callable[[str, str], None]] = None) -> str:
         """Executa o ciclo completo ReAct de um turno:
         1. Envia o prompt do usuário com as ferramentas registradas.
