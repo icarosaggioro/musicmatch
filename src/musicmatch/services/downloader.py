@@ -18,7 +18,7 @@ import uuid
 
 import mediafile
 from yt_dlp import YoutubeDL
-from yt_dlp.utils import DownloadError, match_filter_func
+from yt_dlp.utils import DownloadError, MaxDownloadsReached, match_filter_func
 
 from musicmatch.config import settings
 from musicmatch.domain.staging import DownloadSessionManifest, StagedTrack
@@ -122,12 +122,14 @@ class AudioDownloaderService:
             "enable_file_urls": False,
             "socket_timeout": 15,
             "noplaylist": not is_playlist,
-            "max_downloads": max_playlist if is_playlist else 1,
             "max_filesize": 250 * 1024 * 1024,  # 250 MB
             "match_filter": match_filter_func(f"!is_live & duration <= {max_duration}"),
             "outtmpl": str(session_dir / "%(id)s.%(ext)s"),
             "windowsfilenames": True,
         }
+
+        if is_playlist:
+            opts["playlist_items"] = f"1-{max_playlist}"
 
         if progress_hook:
             opts["progress_hooks"] = [progress_hook]
@@ -205,7 +207,16 @@ class AudioDownloaderService:
 
         try:
             with YoutubeDL(opts) as ydl:
-                info = ydl.extract_info(url, download=True)
+                try:
+                    info = ydl.extract_info(url, download=True)
+                except MaxDownloadsReached:
+                    # In case yt-dlp hit a max_downloads limit, the file was already downloaded to disk.
+                    # Retrieve metadata without downloading to reconstruct info.
+                    try:
+                        info = ydl.extract_info(url, download=False)
+                    except Exception:
+                        info = None
+
                 if not info:
                     raise DownloadError(f"Could not extract information from '{url}'.")
 
