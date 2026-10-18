@@ -1,13 +1,24 @@
 # Changelog
 
-Todas as alterações notáveis neste projeto serão documentadas neste arquivo.
+All notable changes to this project will be documented in this file.
 
-O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/),
-e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR/).
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
-## [0.2.0] - Em Desenvolvimento
+## [Unreleased]
+### Added
+- Adoption and calibration of the SDLC framework (`.agents/` rules, guides, and skills).
+- Project-specific configuration in `.agents/rules/project.md` (solo profile, scopes, safety rules, docs map).
+- Cross-platform check pipeline script (`scripts/check.py`) for syntax verification, dependency health, and test suite.
+- GitHub Actions CI workflow (`.github/workflows/ci.yml`) enforcing automated quality gates on push and pull requests.
+- Scoped AI Code Review rules (`.github/ocr-rules.json`) excluding lockfiles and test media.
+- Library governance and maintenance suite (Front 5 - ADR 0013 & ADR 0009): `/audit`, `/delete`, `/prune`, `/retag`, `/unindex`, and unified `/library`.
+
+---
+
+## [0.2.0] - In Development
 ### Adicionado
 - Integração das bibliotecas `mediafile` e `pyacoustid` para leitura real de tags de áudio e fingerprint acústico.
 - Motor de varredura real (`Scanner`) com suporte a múltiplos formatos (.mp3, .flac, .m4a, .aac, .ogg, .wav, .wma, .aiff, .opus).

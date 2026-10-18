@@ -1,0 +1,22 @@
+{
+  "exclude": [
+    "uv.lock",
+    "*.lock",
+    "*.jsonl",
+    "*.db",
+    "*.sqlite3",
+    "tests/_MEDIA/**",
+    ".agents/**",
+    ".claude/**"
+  ],
+  "rules": [
+    {
+      "pattern": "src/musicmatch/**",
+      "instruction": "Enforce Clean Architecture and DDD principles. Ensure all external inputs are validated with Pydantic V2. Verify SQLite parameterized queries to prevent SQL injection. Strictly forbid direct destructive operations (os.remove) on audio files—always require send2trash."
+    },
+    {
+      "pattern": "tests/**",
+      "instruction": "Verify automated tests provide real regression and behavior coverage. Ensure assertions verify specific outputs and never weaken test gates."
+    }
+  ]
+}
