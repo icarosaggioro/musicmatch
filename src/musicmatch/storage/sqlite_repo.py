@@ -191,6 +191,53 @@ class SQLiteTrackRepository:
             cursor = self.conn.execute(sql, track_ids)
             return cursor.rowcount
 
+    def find_relocation_candidate(
+        self,
+        file_size: int,
+        duration_seconds: float,
+        title: str,
+        artist: str,
+        duration_delta: float = 1.0,
+    ) -> Optional[Track]:
+        """Localiza faixa com status 'MISSING' compatível com a heurística de Fast Relocation (ADR 0009)."""
+        sql = """
+        SELECT * FROM tracks
+        WHERE status = 'MISSING'
+          AND file_size = ?
+          AND abs(duration_seconds - ?) <= ?
+          AND LOWER(title) = LOWER(?)
+          AND LOWER(artist) = LOWER(?)
+        LIMIT 1;
+        """
+        cursor = self.conn.execute(sql, (file_size, duration_seconds, duration_delta, title, artist))
+        row = cursor.fetchone()
+        return self._row_to_track(row) if row else None
+
+    def relocate_track(self, old_id: str, new_track: Track) -> bool:
+        """Migra um registro de faixa com status 'MISSING' para seu novo caminho/ID canônico (ADR 0009)."""
+        sql = """
+        UPDATE tracks SET
+            id = ?,
+            file_path = ?,
+            file_mtime = ?,
+            file_size = ?,
+            status = 'AVAILABLE',
+            updated_at = datetime('now')
+        WHERE id = ?;
+        """
+        with self.conn:
+            cursor = self.conn.execute(
+                sql,
+                (
+                    new_track.id,
+                    new_track.file_path,
+                    new_track.file_mtime,
+                    new_track.file_size,
+                    old_id,
+                ),
+            )
+            return cursor.rowcount > 0
+
     def get_stat_cache_map(self, path_prefix: Optional[str] = None) -> Dict[str, Any]:
         """Mapeia caminhos canônicos para seus dados de stat-cache para re-scans O(1)."""
         if path_prefix:

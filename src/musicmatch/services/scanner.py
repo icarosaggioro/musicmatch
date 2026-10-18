@@ -141,12 +141,23 @@ class AudioScanner:
                     year=year,
                     track_number=track_num,
                 )
-                tracks_to_persist.append(track)
-
                 if canonical in stat_cache:
+                    tracks_to_persist.append(track)
                     tracks_updated += 1
                 else:
-                    tracks_added += 1
+                    # Heurística de Fast Relocation Match (ADR 0009): verifica se o arquivo foi movido/renomeado
+                    candidate = self.repo.find_relocation_candidate(
+                        file_size=track.file_size,
+                        duration_seconds=track.duration_seconds,
+                        title=track.title,
+                        artist=track.artist,
+                    )
+                    if candidate:
+                        self.repo.relocate_track(candidate.id, track)
+                        tracks_updated += 1
+                    else:
+                        tracks_to_persist.append(track)
+                        tracks_added += 1
 
                 if len(sample_tracks) < 5:
                     sample_tracks.append(f"{artist} - {title} ({genre})")

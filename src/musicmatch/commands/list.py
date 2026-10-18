@@ -66,3 +66,6 @@ class ListCommand(Command):
 
         ctx.ui.render_info("Fim da listagem.")
         return True
+
+
+__all__ = ["ListCommand"]

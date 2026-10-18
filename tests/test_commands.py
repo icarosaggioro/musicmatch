@@ -26,15 +26,16 @@ def test_command_registry_defaults():
     assert "/help" in names
     assert "/status" in names
     assert "/list" in names
+    assert "/library" in names
     assert "/model" in names
     assert "/scan" in names
     assert "/search" in names
     assert "/download" in names
     assert "/staging" in names
     assert "/promote" in names
-    assert "/library" in names
     assert "/clear" in names
     assert "/exit" in names
+    assert "/lib" in registry.lookup_map
 
 def test_is_command_detection():
     registry = CommandRegistry()
@@ -294,7 +295,7 @@ def test_command_interface_contract():
     """Verify that all registered commands fulfill the standardized Command interface."""
     registry = CommandRegistry()
     commands = registry.get_all_commands()
-    assert len(commands) == 12
+    assert len(commands) == 17
 
     for cmd in commands:
         # Canonical name
@@ -327,7 +328,9 @@ def test_commands_alphabetical_order():
     expected_sorted = sorted(names, key=lambda n: n.lower())
     assert names == expected_sorted
     assert names == [
+        "/audit",
         "/clear",
+        "/delete",
         "/download",
         "/exit",
         "/help",
@@ -335,10 +338,13 @@ def test_commands_alphabetical_order():
         "/list",
         "/model",
         "/promote",
+        "/prune",
+        "/retag",
         "/scan",
         "/search",
         "/staging",
         "/status",
+        "/unindex",
     ]
 
 

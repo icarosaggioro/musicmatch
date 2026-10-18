@@ -102,8 +102,20 @@ class ConsoleUI:
         print("-" * 72)
         for i, t in enumerate(tracks, start=start_idx):
             artist_str = f" - {t.artist}" if getattr(t, "artist", None) else ""
-            print(f"  {i:>3}. {t.title}{artist_str}")
+            status_str = " ⚠️ [ARQUIVO INDISPONÍVEL]" if getattr(t, "status", None) == "MISSING" else ""
+            print(f"  {i:>3}. {t.title}{artist_str}{status_str}")
             print(f"       Caminho: {t.file_path}")
+        print("-" * 72)
+
+    def render_search_results(self, tracks: List[Any]) -> None:
+        """Exibe os resultados de busca formatados com caminhos e status de disponibilidade."""
+        print("-" * 72)
+        for i, t in enumerate(tracks, 1):
+            status_str = " ⚠️ [ARQUIVO INDISPONÍVEL]" if getattr(t, "status", None) == "MISSING" else ""
+            bpm_str = f"({t.bpm:.0f} BPM)" if getattr(t, "bpm", None) else ""
+            genre_str = f"[{t.genre}]" if getattr(t, "genre", None) else ""
+            print(f"  {i:>2}. {t.artist} - {t.title} {genre_str} {bpm_str}{status_str}")
+            print(f"      Caminho: {t.file_path}")
         print("-" * 72)
 
     def prompt_pagination(self) -> str:

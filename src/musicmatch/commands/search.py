@@ -45,6 +45,10 @@ class SearchCommand(Command):
             return True
 
         ctx.ui.render_success(f"{len(tracks)} faixa(s) encontrada(s):")
-        for i, t in enumerate(tracks, 1):
-            print(f"  {i}. {t.artist} - {t.title} [{t.genre}] ({t.bpm:.0f} BPM)")
+        if hasattr(ctx.ui, "render_search_results"):
+            ctx.ui.render_search_results(tracks)
+        else:
+            for i, t in enumerate(tracks, 1):
+                status_str = " ⚠️ [ARQUIVO INDISPONÍVEL]" if getattr(t, "status", None) == "MISSING" else ""
+                print(f"  {i}. {t.artist} - {t.title} [{t.genre}] ({t.bpm:.0f} BPM){status_str}")
         return True

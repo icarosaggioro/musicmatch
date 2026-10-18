@@ -9,8 +9,10 @@ Follows the Command Pattern:
 import shlex
 from typing import Dict, List, Optional
 
+from musicmatch.commands.audit import AuditCommand
 from musicmatch.commands.base import Command, CommandContext
 from musicmatch.commands.clear import ClearCommand
+from musicmatch.commands.delete import DeleteCommand
 from musicmatch.commands.download import DownloadCommand
 from musicmatch.commands.exit import ExitCommand
 from musicmatch.commands.help import HelpCommand
@@ -18,10 +20,13 @@ from musicmatch.commands.library import LibraryCommand
 from musicmatch.commands.list import ListCommand
 from musicmatch.commands.model import ModelCommand
 from musicmatch.commands.promote import PromoteCommand
+from musicmatch.commands.prune import PruneCommand
+from musicmatch.commands.retag import RetagCommand
 from musicmatch.commands.scan import ScanCommand
 from musicmatch.commands.search import SearchCommand
 from musicmatch.commands.staging import StagingCommand
 from musicmatch.commands.status import StatusCommand
+from musicmatch.commands.unindex import UnindexCommand
 
 
 class CommandRegistry:
@@ -37,7 +42,9 @@ class CommandRegistry:
     def _register_defaults(self) -> None:
         """Registra os comandos padrão do sistema no início dos tempos."""
         defaults: List[Command] = [
+            AuditCommand(),
             ClearCommand(),
+            DeleteCommand(),
             DownloadCommand(),
             ExitCommand(),
             HelpCommand(),
@@ -45,10 +52,13 @@ class CommandRegistry:
             ListCommand(),
             ModelCommand(),
             PromoteCommand(),
+            PruneCommand(),
+            RetagCommand(),
             ScanCommand(),
             SearchCommand(),
             StagingCommand(),
             StatusCommand(),
+            UnindexCommand(),
         ]
         for cmd in defaults:
             self.register(cmd)
