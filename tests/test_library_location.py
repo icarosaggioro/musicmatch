@@ -1,6 +1,7 @@
 """Tests for LibraryLocationManager and ADR 0012 governance safeguards."""
 
 import json
+import os
 from pathlib import Path
 from unittest.mock import patch
 import pytest
@@ -39,8 +40,9 @@ def test_resolve_with_config_file(monkeypatch, tmp_path):
 def test_critical_path_guard_rejects_root(tmp_path):
     manager = LibraryLocationManager(config_path=tmp_path / "cfg.json")
 
+    root_path = Path("C:\\").resolve() if os.name == "nt" else Path("/").resolve()
     with pytest.raises(ValueError, match="Root drive"):
-        manager.validate_and_probe_path(Path("C:\\").resolve())
+        manager.validate_and_probe_path(root_path)
 
 
 def test_critical_path_guard_rejects_system_directory(tmp_path):
