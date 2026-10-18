@@ -1,0 +1,48 @@
+name: ci-codereview
+
+# Advisory AI code review. Never a merge gate.
+# Needs: secret CI_OPENROUTER_API_KEY and variable OCR_LLM_MODEL (no fallback on purpose).
+# Optional: add .github/ocr-rules.json and uncomment the `rule` input to scope review by path.
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+
+concurrency:
+  group: ci-codereview-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  review:
+    name: AI Code Review
+    # Skip drafts and bots.
+    if: >-
+      github.event.pull_request.draft == false &&
+      github.event.pull_request.user.type != 'Bot' &&
+      github.actor != 'dependabot[bot]' &&
+      !endsWith(github.actor, '[bot]')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+      issues: write
+    steps:
+      - name: 1. Checkout repository
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: 2. Run Open Code Review
+        uses: alibaba/open-code-review@v1.12.13
+        continue-on-error: true
+        with:
+          llm_url: 'https://openrouter.ai/api/v1'
+          llm_auth_token: ${{ secrets.CI_OPENROUTER_API_KEY }}
+          llm_model: ${{ vars.OCR_LLM_MODEL }}
+          llm_protocol: 'openai'
+          language: 'English'
+          sticky_summary: 'true'
+          incremental: 'true'
+          checkpoint_range: 'true'
+          rule: '.github/ocr-rules.json'
+          github_token: ${{ secrets.GITHUB_TOKEN }}

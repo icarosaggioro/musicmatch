@@ -4,8 +4,8 @@
 > A hands-on, educational engineering laboratory exploring AI Agents, Digital Signal Processing (DSP), and Modern Systems Architecture.
 
 [![Python 3.14+](https://img.shields.io/badge/python-3.14%2B-blue.svg)](https://www.python.org/downloads/)
-[![Tests](https://img.shields.io/badge/tests-87%20passed-brightgreen.svg)]()
-[![Coverage](https://img.shields.io/badge/coverage-98%25-success.svg)]()
+[![CI](https://github.com/icarosaggioro/musicmatch/actions/workflows/ci.yml/badge.svg)](https://github.com/icarosaggioro/musicmatch/actions/workflows/ci.yml)
+[![Tests](https://img.shields.io/badge/tests-197%20passed-brightgreen.svg)]()
 [![Architecture](https://img.shields.io/badge/architecture-Harness%20%7C%20Pydantic%20V2-orange.svg)]()
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
