@@ -73,7 +73,7 @@ def main() -> int:
         print("=" * 72)
         return 1
 
-    print("[SUCCESS] ALL QUALITY GATES PASSED (197 tests, clean syntax, valid dependencies)")
+    print("[SUCCESS] ALL QUALITY GATES PASSED (syntax, dependencies, test suite)")
     print("=" * 72)
     return 0
 
