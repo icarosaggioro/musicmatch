@@ -1,7 +1,7 @@
 # 0012. Managed Library Location Governance, Cross-Platform Resolution, and Write-Access Safeguards
 
 ## Context
-Following the establishment of the two-stage staging and managed library taxonomy ([ADR 0011](file:///c:/WebApps/musicmatch/docs/adr/0011-web-ingestion-two-stage-staging-and-managed-library-taxonomy.md)), the system requires a definitive architectural contract for resolving, configuring, and guarding the physical location of the **Managed Library Directory**.
+Following the establishment of the two-stage staging and managed library taxonomy ([ADR 0011](0011-web-ingestion-two-stage-staging-and-managed-library-taxonomy.md)), the system requires a definitive architectural contract for resolving, configuring, and guarding the physical location of the **Managed Library Directory**.
 
 Without strict governance, several system risks emerge:
 1. **Platform Divergence**: Inconsistent default locations across Windows, Linux, and macOS.
@@ -38,7 +38,7 @@ Without strict governance, several system risks emerge:
      - The active project root directory (preventing audio downloads from polluting source code).
 
 5. **Automatic Namespace Scaffolding**:
-   - Upon successful path verification, the system automatically initializes the three canonical top-level taxonomy namespaces ([ADR 0011](file:///c:/WebApps/musicmatch/docs/adr/0011-web-ingestion-two-stage-staging-and-managed-library-taxonomy.md)):
+   - Upon successful path verification, the system automatically initializes the three canonical top-level taxonomy namespaces ([ADR 0011](0011-web-ingestion-two-stage-staging-and-managed-library-taxonomy.md)):
      - `<Library_Root>/Artists/`
      - `<Library_Root>/Various Artists/`
      - `<Library_Root>/Collections/`
@@ -50,7 +50,7 @@ Without strict governance, several system risks emerge:
 
 7. **Path Relocation Policy**:
    - Modifying the library path via `/library set-path` updates the destination for all subsequent track promotions.
-   - Pre-existing tracks remain valid and playable at their current registered file paths in the database (consistent with the multi-directory catalog design established in [ADR 0009](file:///c:/WebApps/musicmatch/docs/adr/0009-library-idempotency-stat-cache-and-lifecycle-policy.md)).
+   - Pre-existing tracks remain valid and playable at their current registered file paths in the database (consistent with the multi-directory catalog design established in [ADR 0009](0009-library-idempotency-stat-cache-and-lifecycle-policy.md)).
 
 ---
 

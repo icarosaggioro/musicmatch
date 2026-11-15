@@ -1,7 +1,7 @@
 # 0011. Web Ingestion Pipeline, Two-Stage Staging Architecture, and Managed Library Taxonomy
 
 ## Context
-Following the adoption of `yt-dlp` as an external dependency ([ADR 0010](file:///c:/WebApps/musicmatch/docs/adr/0010-yt-dlp-integration-and-packaging-strategy.md)), the system requires a comprehensive architectural specification for **Feature Front 1: Web Ingestion & Secure Download**.
+Following the adoption of `yt-dlp` as an external dependency ([ADR 0010](0010-yt-dlp-integration-and-packaging-strategy.md)), the system requires a comprehensive architectural specification for **Feature Front 1: Web Ingestion & Secure Download**.
 
 Web-sourced audio ingestion presents distinct systems and domain engineering challenges:
 1. **Audio Transcoding Quality**: Blindly re-encoding modern web audio streams (predominantly Opus or AAC) into MP3 320 kbps incurs lossy-to-lossy degradation, introduces psychoacoustic artifacts, and wastes CPU cycles.

@@ -100,8 +100,8 @@ Este documento serve como mapa de referência rápida para todos os tópicos con
 
 ## 8. Persistência & Escalabilidade em Larga Escala (1.000.000+ Faixas)
 * **Estudo Comparativo Detalhado**:
-  * Documento completo em [`docs/DATABASE_SCALING_SQLITE_VS_POSTGRESQL.md`](file:///c:/WebApps/musicmatch/docs/DATABASE_SCALING_SQLITE_VS_POSTGRESQL.md).
-  * Registro de Decisão Arquitetural: [ADR 0008 - Database Scaling Strategy and PostgreSQL Migration Roadmap](file:///c:/WebApps/musicmatch/docs/adr/0008-database-scaling-and-postgresql-migration-roadmap.md).
+  * Documento completo em [`docs/DATABASE_SCALING_SQLITE_VS_POSTGRESQL.md`](DATABASE_SCALING_SQLITE_VS_POSTGRESQL.md).
+  * Registro de Decisão Arquitetural: [ADR 0008 - Database Scaling Strategy and PostgreSQL Migration Roadmap](adr/0008-database-scaling-and-postgresql-migration-roadmap.md).
 * **Diretrizes Consolidadas**:
   * **Fase Atual (Desenvolvimento & Médio Porte)**: Manutenção do **SQLite com FTS5** embarcado para agilidade, testes unitários em memória (`:memory:`) e distribuição com zero infraestrutura.
   * **Fase Avançada / Produção em Escala (1M Faixas)**: Migração planejada para **PostgreSQL 16+** com extensões:
@@ -113,7 +113,7 @@ Este documento serve como mapa de referência rápida para todos os tópicos con
 ---
 
 ## 9. Idempotência, Identidade Canônica e Ciclo de Vida da Biblioteca
-* **Registro de Decisão Arquitetural**: [ADR 0009 - Library Idempotency, Track Identity via Full SHA-256 Path Hash, Stat-Cache, and Non-Destructive Lifecycle Policy](file:///c:/WebApps/musicmatch/docs/adr/0009-library-idempotency-stat-cache-and-lifecycle-policy.md).
+* **Registro de Decisão Arquitetural**: [ADR 0009 - Library Idempotency, Track Identity via Full SHA-256 Path Hash, Stat-Cache, and Non-Destructive Lifecycle Policy](adr/0009-library-idempotency-stat-cache-and-lifecycle-policy.md).
 * **Diretrizes de Domínio**:
   * **Identidade Canônica**: Chave primária determinística (`trk_<sha256_full>`) baseada no caminho normalizado minúsculo no SO.
   * **Stat-Cache**: Validação instantânea via `os.stat` (`mtime` + `file_size`) para pular I/O redundante em varreduras repetidas.
@@ -125,11 +125,11 @@ Este documento serve como mapa de referência rápida para todos os tópicos con
 ---
 
 ## 10. Roadmap de Evolução Funcional e Próximas Funcionalidades Reais
-* **Documento Completo de Especificação**: [`docs/ROADMAP_PROXIMAS_FUNCIONALIDADES.md`](file:///c:/WebApps/musicmatch/docs/ROADMAP_PROXIMAS_FUNCIONALIDADES.md).
-* **Decisão Arquitetural de Integração**: [ADR 0010 - Estratégia de Integração do yt-dlp, Gestão de Dependências e Empacotamento de CI/CD](file:///c:/WebApps/musicmatch/docs/adr/0010-yt-dlp-integration-and-packaging-strategy.md).
-* **Decisão Arquitetural da Frente 1**: [ADR 0011 - Web Ingestion Pipeline, Two-Stage Staging Architecture, and Managed Library Taxonomy](file:///c:/WebApps/musicmatch/docs/adr/0011-web-ingestion-two-stage-staging-and-managed-library-taxonomy.md).
-* **Decisão de Governança da Biblioteca**: [ADR 0012 - Managed Library Location Governance, Cross-Platform Resolution, and Write-Access Safeguards](file:///c:/WebApps/musicmatch/docs/adr/0012-managed-library-governance-resolution-and-safeguards.md).
-* **Decisão de Manutenção, Consolidação e Deleção**: [ADR 0013 - Library Maintenance, Consolidation Imports, and Two-Tier Deletion Safeguards](file:///c:/WebApps/musicmatch/docs/adr/0013-library-maintenance-consolidation-and-deletion-safeguards.md).
+* **Documento Completo de Especificação**: [`docs/ROADMAP_PROXIMAS_FUNCIONALIDADES.md`](ROADMAP_PROXIMAS_FUNCIONALIDADES.md).
+* **Decisão Arquitetural de Integração**: [ADR 0010 - Estratégia de Integração do yt-dlp, Gestão de Dependências e Empacotamento de CI/CD](adr/0010-yt-dlp-integration-and-packaging-strategy.md).
+* **Decisão Arquitetural da Frente 1**: [ADR 0011 - Web Ingestion Pipeline, Two-Stage Staging Architecture, and Managed Library Taxonomy](adr/0011-web-ingestion-two-stage-staging-and-managed-library-taxonomy.md).
+* **Decisão de Governança da Biblioteca**: [ADR 0012 - Managed Library Location Governance, Cross-Platform Resolution, and Write-Access Safeguards](adr/0012-managed-library-governance-resolution-and-safeguards.md).
+* **Decisão de Manutenção, Consolidação e Deleção**: [ADR 0013 - Library Maintenance, Consolidation Imports, and Two-Tier Deletion Safeguards](adr/0013-library-maintenance-consolidation-and-deletion-safeguards.md).
 * **Frentes Estratégicas Mapeadas**:
   1. **Frente 1: Ingestão Web e Download Seguro com `yt-dlp`**: Integração assíncrona, blindagem contra SSRF/DoS, extração de áudio para MP3/FLAC e catalogação automática.
   2. **Frente 2: Motor de DSP Acústico e Fingerprinting Real**: Chromaprint via `pyacoustid`, medição de loudness EBU R128/LUFS, BPM acústico e Camelot Wheel.

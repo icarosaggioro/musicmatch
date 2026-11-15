@@ -11,7 +11,7 @@
 
 O **MusicMatch** consolidou sua base técnica na versão `0.2.0`:
 - **Clean Architecture & DDD**: Separação estrita entre Apresentação (`ConsoleUI`), Comandos (`CommandRegistry`), Serviços de Aplicação (`LibraryService`), Domínio (`Track`, `ScanResult` em Pydantic V2) e Persistência (`SQLiteTrackRepository` com SQLite FTS5).
-- **Varredura Idempotente & Stat-Cache ([ADR 0009](file:///c:/WebApps/musicmatch/docs/adr/0009-library-idempotency-stat-cache-and-lifecycle-policy.md))**: Chave canônica SHA-256 (`trk_<hash>`), validação instantânea em $O(1)$ por `mtime` e tamanho em bytes, e política de ciclo de vida não-destrutiva (`AVAILABLE` vs `MISSING`).
+- **Varredura Idempotente & Stat-Cache ([ADR 0009](adr/0009-library-idempotency-stat-cache-and-lifecycle-policy.md))**: Chave canônica SHA-256 (`trk_<hash>`), validação instantânea em $O(1)$ por `mtime` e tamanho em bytes, e política de ciclo de vida não-destrutiva (`AVAILABLE` vs `MISSING`).
 - **Suíte de Testes Automatizados**: 87 testes unitários e de integração cobrindo fluxos felizes e de exceção com 100% de sucesso.
 
 Com os alicerces de dados, persistência e harness validados, este documento estabelece as **6 frentes de funcionalidades reais** para transformar o MusicMatch em um gerenciador e reprodutor de música de ponta, nativo de Inteligência Artificial.
@@ -55,7 +55,7 @@ flowchart TD
 Permitir que o usuário e o Agente Inteligente incorporem novas músicas diretamente de plataformas web (YouTube, SoundCloud, Bandcamp) para a biblioteca local do computador, com catalogação instantânea no banco de dados.
 
 #### Fundamentação Técnica
-Conforme os relatórios [`docs/YT-DLP_RELATORIO_TECNICO.md`](file:///c:/WebApps/musicmatch/docs/YT-DLP_RELATORIO_TECNICO.md), [`docs/YT-DLP_RELATORIO_TECNICO_E_SEGURANCA.md`](file:///c:/WebApps/musicmatch/docs/YT-DLP_RELATORIO_TECNICO_E_SEGURANCA.md), o [ADR 0010 - Estratégia de Integração do yt-dlp](file:///c:/WebApps/musicmatch/docs/adr/0010-yt-dlp-integration-and-packaging-strategy.md), o [ADR 0011 - Web Ingestion Pipeline, Two-Stage Staging Architecture, and Managed Library Taxonomy](file:///c:/WebApps/musicmatch/docs/adr/0011-web-ingestion-two-stage-staging-and-managed-library-taxonomy.md) e o [ADR 0012 - Governança e Resolução da Managed Library](file:///c:/WebApps/musicmatch/docs/adr/0012-managed-library-governance-resolution-and-safeguards.md), a arquitetura de ingestão web opera sob o modelo de dois estágios e taxonomia canônica:
+Conforme os relatórios [`docs/YT-DLP_RELATORIO_TECNICO.md`](YT-DLP_RELATORIO_TECNICO.md), [`docs/YT-DLP_RELATORIO_TECNICO_E_SEGURANCA.md`](YT-DLP_RELATORIO_TECNICO_E_SEGURANCA.md), o [ADR 0010 - Estratégia de Integração do yt-dlp](adr/0010-yt-dlp-integration-and-packaging-strategy.md), o [ADR 0011 - Web Ingestion Pipeline, Two-Stage Staging Architecture, and Managed Library Taxonomy](adr/0011-web-ingestion-two-stage-staging-and-managed-library-taxonomy.md) e o [ADR 0012 - Governança e Resolução da Managed Library](adr/0012-managed-library-governance-resolution-and-safeguards.md), a arquitetura de ingestão web opera sob o modelo de dois estágios e taxonomia canônica:
 1. **Blindagem contra SSRF e Recursos**: Bloqueio de `enable_file_urls: False`, filtro `match_filter` para barrar transmissões ao vivo infinitas (`!is_live`) e limite de duração máxima (ex: 30 minutos).
 2. **Proteção contra Path Traversal**: Uso estrito de `prepare_filename` ou IDs canônicos para evitar nomes maliciosos oriundos de títulos da web.
 3. **Pós-processamento de Áudio**: Conversão transparente via `FFmpegExtractAudio` para MP3/FLAC em diretório dedicado (`data/downloads` ou pasta configurada no `.env`).
@@ -208,7 +208,7 @@ Conforme especificado no [ADR 0009](adr/0009-library-idempotency-stat-cache-and-
 ### Frente 6: Sessão Conversacional Multi-Turn no REPL
 
 #### Objetivo
-Evoluir o agente de turno único ([ADR 0003](file:///c:/WebApps/musicmatch/docs/adr/0003-didactic-incremental-evolution.md)) para um assistente conversacional contínuo com histórico de contexto e suporte à orquestração de subagentes.
+Evoluir o agente de turno único ([ADR 0003](adr/0003-didactic-incremental-evolution.md)) para um assistente conversacional contínuo com histórico de contexto e suporte à orquestração de subagentes.
 
 #### Fundamentação Técnica
 1. **Histórico Conversacional Dinâmico**:
