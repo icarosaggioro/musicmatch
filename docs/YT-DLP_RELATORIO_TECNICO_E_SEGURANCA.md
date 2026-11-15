@@ -156,7 +156,7 @@ O projeto foi construído sob a filosofia de **Zero dependências externas obrig
 - **Defesa Obrigatória:** Valide e sanitize a URL antes de passá-la ao `yt-dlp`, rejeitando hosts locais e faixas de IP privadas (`127.0.0.0/8`, `10.0.0.0/8`, `192.168.0.0/16`, `169.254.0.0/16`).
 
 #### 2. Execução Arbitrária de Comandos Shell via `--exec` (`ExecPP`)
-- **O que é:** O pós-processador [`ExecPP`](file:///c:/WebApps/yt-dlp/yt-dlp/yt_dlp/postprocessor/exec.py) permite rodar comandos no terminal após o download via `Popen.run(cmd, shell=True)`.
+- **O que é:** O pós-processador [`ExecPP`](https://github.com/yt-dlp/yt-dlp/blob/master/yt_dlp/postprocessor/exec.py) permite rodar comandos no terminal após o download via `Popen.run(cmd, shell=True)`.
 - **A armadilha:** Se você permitir que usuários passem parâmetros livres ou se montar comandos concatenando metadados de vídeos externos, pode haver injeção de comandos de terminal (RCE).
 - **Defesa Obrigatória:** Nunca permita que usuários configurem opções de pós-processamento de shell.
 
@@ -297,6 +297,6 @@ def make_progress_hook(websocket_sender):
 ## 7. Conclusão e Recomendações Estratégicas
 
 1. **Aproveitamento em Novos Projetos**: O `yt-dlp` é a solução mais completa e performática do mercado para ingestão e extração de metadados multimídia.
-2. **Reutilização Modular**: Além de usá-lo como um todo, funções específicas como [`traverse_obj`](file:///c:/WebApps/yt-dlp/yt-dlp/yt_dlp/utils/traversal.py) (processamento de JSON) e [`extract_cookies_from_browser`](file:///c:/WebApps/yt-dlp/yt-dlp/yt_dlp/cookies.py) (autenticação) podem ser utilizadas isoladamente em qualquer outro robô ou automação.
+2. **Reutilização Modular**: Além de usá-lo como um todo, funções específicas como [`traverse_obj`](https://github.com/yt-dlp/yt-dlp/blob/master/yt_dlp/utils/traversal.py) (processamento de JSON) e [`extract_cookies_from_browser`](https://github.com/yt-dlp/yt-dlp/blob/master/yt_dlp/cookies.py) (autenticação) podem ser utilizadas isoladamente em qualquer outro robô ou automação.
 3. **Produção**: Nunca execute o `yt-dlp` de forma síncrona dentro da thread principal de servidores assíncronos e sempre aplique a blindagem contra SSRF e DoS descrita na Seção 6.
 

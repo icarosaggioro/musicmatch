@@ -22,7 +22,7 @@ Project-owned. The SDLC package never overwrites this file.
 - Safety rules: Direct physical file deletion without OS Recycle Bin (send2trash) is strictly forbidden. Database catalog resets (/clear, /library clear) require interactive confirmation. Batch operations require confirmation gates.
 
 ## Docs map
-- Requirements: README.md, docs/ROADMAP_PROXIMAS_FUNCIONALIDADES.md
+- Requirements: README.md, docs/ROADMAP.md
 - Glossary: CONTEXT.md
 - ADRs: docs/adr/
 - Environments and topology: CONTEXT.md

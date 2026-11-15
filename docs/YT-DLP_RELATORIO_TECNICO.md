@@ -57,7 +57,7 @@ flowchart TD
 ```
 
 ### 2.1. O Ciclo de Vida de uma Operação (`YoutubeDL.py`)
-Toda a orquestração reside na classe [`YoutubeDL`](file:///c:/WebApps/yt-dlp/yt-dlp/yt_dlp/YoutubeDL.py#L204):
+Toda a orquestração reside na classe [`YoutubeDL`](https://github.com/yt-dlp/yt-dlp/blob/master/yt_dlp/YoutubeDL.py):
 1. **Inicialização**: A classe recebe um dicionário `params` (`ydl_opts`). Carrega cookies se configurado, inicializa o diretor de rede (`RequestDirector`), monta a cadeia de manipuladores e registra os extratores (via lazy loading em `lazy_extractors.py` para inicialização instantânea).
 2. **Resolução de URL (`extract_info`)**: Itera sobre os extratores registrados. O método `ie.suitable(url)` avalia a regex de correspondência `_VALID_URL`.
 3. **Extração de Metadados (`ie.extract(url)`)**: O extrator executa chamadas de API ou scraping HTTP. Retorna um dicionário canônico denominado `info_dict`.
@@ -88,11 +88,11 @@ Capacidade de extrair cookies autenticados diretamente dos perfis de navegadores
 Plataformas como o YouTube alteram dinamicamente seus parâmetros de download (ex: deofuscação de assinaturas `s` e cálculo do parâmetro de throttling `n`).
 - Em vez de depender obrigatoriamente do Node.js, o `yt-dlp` possui um **interpretador JavaScript completo escrito em Python puro** (`jsinterp.py`).
 - Ele tokeniza e interpreta expressões JS, chamadas de funções, manipulação de protótipos de arrays (`slice`, `splice`, `reverse`) e aritmética bitwise de 32 bits, descriptografando o algoritmo diretamente em memória.
-- Além do interpretador nativo, suporta motores externos como Deno, Bun, Node e QuickJS via [`_jsruntime.py`](file:///c:/WebApps/yt-dlp/yt-dlp/yt_dlp/utils/_jsruntime.py).
+- Além do interpretador nativo, suporta motores externos como Deno, Bun, Node e QuickJS via [`_jsruntime.py`](https://github.com/yt-dlp/yt-dlp/blob/master/yt_dlp/utils/_jsruntime.py).
 
 ### 3.4. Criptografia Resiliente (`yt_dlp.aes`)
 Streams HLS (`m3u8`) frequentemente vêm fragmentados em pedaços `.ts` ou `.m4s` cifrados com **AES-128-CBC**.
-- O módulo [`aes.py`](file:///c:/WebApps/yt-dlp/yt-dlp/yt_dlp/aes.py) fornece decriptação de alta performance se `pycryptodomex` estiver instalado.
+- O módulo [`aes.py`](https://github.com/yt-dlp/yt-dlp/blob/master/yt_dlp/aes.py) fornece decriptação de alta performance se `pycryptodomex` estiver instalado.
 - Se nenhuma biblioteca C externa estiver presente, ele executa uma **implementação nativa de AES em Python puro** (com expansão de chave e tabelas S-Box implementadas matematicamente), garantindo que o programa nunca quebre por ausência de dependências compiladas.
 
 ### 3.5. Anti-Bot e PO Token Framework (`yt_dlp.extractor.youtube.pot` & `jsc`)
