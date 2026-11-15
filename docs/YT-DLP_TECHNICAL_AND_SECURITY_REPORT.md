@@ -1,196 +1,196 @@
-# Relatório Técnico, Arquitetural e Análise de Segurança do `yt-dlp`
+# `yt-dlp` Technical, Architectural and Security Analysis Report
 
-> **Documento de Engenharia de Software para Referência e Integração**  
-> **Data:** Setembro de 2026  
-> **Status:** Concluído / Auditado  
-
----
-
-## 1. Visão Geral e Propósito do Projeto
-
-O **`yt-dlp`** é a biblioteca e utilitário de linha de comando mais avançado do ecossistema open-source para extração de metadados, streaming e download de áudio e vídeo da web. Ele nasceu como um fork do `youtube-dl`, criado para superar os gargalos do projeto original: desacelerações de download causadas por travas de throttling, descontinuação temporária de manutenção, vulnerabilidade a proteções anti-bot modernas e ausência de suporte a novos protocolos de streaming.
-
-Hoje, o `yt-dlp` é mantido ativamente e possui **mais de 1.700 extratores especializados** cobrindo:
-- **Redes Sociais & Vídeos Curtos**: TikTok, Instagram, Twitter/X, Bluesky, Facebook, Reddit.
-- **Transmissões ao Vivo & Gaming**: Twitch, Kick, Bilibili, Niconico, Huya, Douyu.
-- **Áudio & Podcasts**: SoundCloud, Bandcamp, Apple Podcasts, Mixcloud, Jamendo.
-- **Portais de Notícias, VOD & Educação**: Vimeo, Dailymotion, Rumble, Udemy, Teachable, Coursera, MIT, portais de TV aberta e órgãos governamentais.
-
-O código opera de duas formas:
-1. **Ferramenta CLI Autônoma**: Executável de terminal com centenas de opções de configuração.
-2. **Biblioteca / SDK Python (Core Engine)**: Classes puras que podem ser importadas (`from yt_dlp import YoutubeDL`) e orquestradas em backends FastAPI, Django, workers Celery/RQ ou scripts de automação.
+> **Software Engineering Document for Reference and Integration**  
+> **Date:** September 2026  
+> **Status:** Completed / Audited  
 
 ---
 
-## 2. Arquitetura do Sistema e Fluxo de Execução
+## 1. Overview and Purpose of the Project
 
-A arquitetura do `yt-dlp` é baseada em camadas modulares e altamente desacopladas:
+**`yt-dlp`** is the most advanced library and command-line utility in the open-source ecosystem for extracting metadata, streaming and downloading audio and video from the web. It started as a fork of `youtube-dl`, created to overcome the original project's bottlenecks: download slowdowns caused by throttling locks, a temporary halt in maintenance, vulnerability to modern anti-bot protections and no support for new streaming protocols.
+
+Today `yt-dlp` is actively maintained and has **more than 1,700 specialized extractors** covering:
+- **Social Networks & Short Video**: TikTok, Instagram, Twitter/X, Bluesky, Facebook, Reddit.
+- **Live Streaming & Gaming**: Twitch, Kick, Bilibili, Niconico, Huya, Douyu.
+- **Audio & Podcasts**: SoundCloud, Bandcamp, Apple Podcasts, Mixcloud, Jamendo.
+- **News, VOD & Education Portals**: Vimeo, Dailymotion, Rumble, Udemy, Teachable, Coursera, MIT, free-to-air TV portals and government agencies.
+
+The code runs in two ways:
+1. **Standalone CLI Tool**: A terminal executable with hundreds of configuration options.
+2. **Python Library / SDK (Core Engine)**: Plain classes that can be imported (`from yt_dlp import YoutubeDL`) and orchestrated in FastAPI or Django backends, Celery/RQ workers or automation scripts.
+
+---
+
+## 2. System Architecture and Execution Flow
+
+The `yt-dlp` architecture is built from modular, highly decoupled layers:
 
 ```
 +-------------------------------------------------------------------------------+
-|                       Entrada: URL(s) / Parâmetros (CLI / API)                 |
+|                       Input: URL(s) / Parameters (CLI / API)                  |
 +-------------------------------------------------------------------------------+
                                       |
                                       v
 +-------------------------------------------------------------------------------+
-|                  Orquestrador Central: YoutubeDL (YoutubeDL.py)               |
+|                  Central Orchestrator: YoutubeDL (YoutubeDL.py)               |
 +-------------------------------------------------------------------------------+
                                       |
                                       v
 +-------------------------------------------------------------------------------+
-|             Registro de Extratores (InfoExtractor Registry / Regex)           |
+|              Extractor Registry (InfoExtractor Registry / Regex)              |
 +-------------------------------------------------------------------------------+
                                       |
                                       v
 +-------------------------------------------------------------------------------+
-|               Camada de Extração & Desofuscação (InfoExtractor)               |
+|               Extraction & Deobfuscation Layer (InfoExtractor)                |
 |  - Networking Subsystem (RequestDirector, curl_cffi TLS impersonation)        |
 |  - JS Interpretation (jsinterp.py AST, Deno/Node/Bun)                         |
-|  - Autenticação & Sessão (cookies.py: Chrome/Firefox/Edge DPAPI, Keyrings)    |
+|  - Authentication & Session (cookies.py: Chrome/Firefox/Edge DPAPI, Keyrings) |
 |  - Anti-Bot / PO Token Framework (youtube.pot, youtube.jsc)                   |
 +-------------------------------------------------------------------------------+
                                       |
-                                      v (info_dict canônico)
+                                      v (canonical info_dict)
 +-------------------------------------------------------------------------------+
-|            Mecanismo de Seleção e Ranqueamento (FormatSorter)                 |
-+-------------------------------------------------------------------------------+
-                                      |
-                                      v
-+-------------------------------------------------------------------------------+
-|                  Camada de Download (Downloader Layer)                        |
-|  - Nativo: HttpFD, HlsFD (aes.py AES-128), DashFD, FragmentFD                |
-|  - Externo: aria2c, ffmpeg, curl, wget                                        |
-|  - Notificações de Progresso em Tempo Real (progress_hooks)                   |
+|                Selection and Ranking Engine (FormatSorter)                    |
 +-------------------------------------------------------------------------------+
                                       |
                                       v
 +-------------------------------------------------------------------------------+
-|             Pipeline de Pós-Processamento (Postprocessor Layer)               |
-|  - FFmpegPostProcessor (Merge áudio+vídeo, Transcode, Remux, Split Chapters)  |
-|  - Embutimento de Legendas e Capas (FFmpegEmbedSubtitle, EmbedThumbnail)      |
-|  - Metadados e Tags (mutagen, FFmpegMetadataPP)                               |
-|  - Filtro de Patrocínios (SponsorBlockPP)                                     |
+|                      Download Layer (Downloader Layer)                        |
+|  - Native: HttpFD, HlsFD (aes.py AES-128), DashFD, FragmentFD                 |
+|  - External: aria2c, ffmpeg, curl, wget                                       |
+|  - Real-Time Progress Notifications (progress_hooks)                          |
 +-------------------------------------------------------------------------------+
                                       |
                                       v
 +-------------------------------------------------------------------------------+
-|             Arquivo Final no Disco / Metadados Retornados em Memória           |
+|               Post-Processing Pipeline (Postprocessor Layer)                  |
+|  - FFmpegPostProcessor (Merge audio+video, Transcode, Remux, Split Chapters)  |
+|  - Embedding Subtitles and Covers (FFmpegEmbedSubtitle, EmbedThumbnail)       |
+|  - Metadata and Tags (mutagen, FFmpegMetadataPP)                              |
+|  - Sponsor Filter (SponsorBlockPP)                                            |
++-------------------------------------------------------------------------------+
+                                      |
+                                      v
++-------------------------------------------------------------------------------+
+|               Final File on Disk / Metadata Returned in Memory                |
 +-------------------------------------------------------------------------------+
 ```
 
-### 2.1. O Ciclo de Vida da Operação (`YoutubeDL.py`)
-1. **Inicialização (`YoutubeDL.__init__`)**: Recebe o dicionário de opções (`params`). Inicializa cookies, o subsistema de rede (`RequestDirector`) e os extratores (via lazy loading em `lazy_extractors.py` para carregamento instantâneo).
-2. **Identificação do Extrator (`extract_info`)**: Avalia a URL contra as regexes dos extratores (`ie.suitable(url)`).
-3. **Extração (`ie.extract`)**: Faz scraping ou chamadas a APIs privadas internas (ex: InnerTube no YouTube, GraphQL no Twitch), deofusca assinaturas e calcula parâmetros de throttling. Retorna o `info_dict`.
-4. **Resolução Recursiva (`process_ie_result`)**: Trata vídeos individuais ou listas (`_type == 'playlist'`), consumindo listas de forma preguiçosa (`LazyList`) para não estourar memória.
-5. **Classificação de Formatos (`process_video_result`)**: Avalia e ranqueia streams de áudio e vídeo conforme a regra de formato configurada (ex: `bestvideo+bestaudio/best`).
-6. **Download (`process_info`)**: Encaminha os fluxos para o downloader apropriado (`HttpFD`, `HlsFD`, `DashFD` ou `aria2c`), disparando eventos em tempo real para os `progress_hooks`.
-7. **Pós-Processamento (`postprocess`)**: Aciona o `FFmpeg` para mesclar áudio e vídeo separados, embutir legendas e gravar metadados ID3/MP4 via `mutagen`.
+### 2.1. The Operation Lifecycle (`YoutubeDL.py`)
+1. **Initialization (`YoutubeDL.__init__`)**: Receives the options dictionary (`params`). Initializes cookies, the networking subsystem (`RequestDirector`) and the extractors (lazily via `lazy_extractors.py` for instant loading).
+2. **Extractor Identification (`extract_info`)**: Matches the URL against the extractors' regexes (`ie.suitable(url)`).
+3. **Extraction (`ie.extract`)**: Scrapes or calls internal private APIs (e.g. InnerTube on YouTube, GraphQL on Twitch), deobfuscates signatures and computes throttling parameters. Returns the `info_dict`.
+4. **Recursive Resolution (`process_ie_result`)**: Handles single videos or lists (`_type == 'playlist'`), consuming lists lazily (`LazyList`) so memory does not blow up.
+5. **Format Ranking (`process_video_result`)**: Evaluates and ranks audio and video streams according to the configured format rule (e.g. `bestvideo+bestaudio/best`).
+6. **Download (`process_info`)**: Routes the streams to the appropriate downloader (`HttpFD`, `HlsFD`, `DashFD` or `aria2c`), firing real-time events to the `progress_hooks`.
+7. **Post-Processing (`postprocess`)**: Runs `FFmpeg` to merge separate audio and video, embed subtitles and write ID3/MP4 metadata via `mutagen`.
 
 ---
 
-## 3. Subcomponentes Notáveis e Joias de Engenharia
+## 3. Notable Subcomponents and Engineering Gems
 
-### 3.1. Subsistema de Rede e Impersonação TLS (`yt_dlp.networking`)
-- **`RequestDirector` & `RequestHandler`**: Abstração desacoplada de rede que suporta múltiplos backends (`urllib`, `requests`, `websockets` e `curl_cffi`).
-- **Impersonação de Navegadores Reais**: Através do `curl_cffi`, o `yt-dlp` consegue forçar impressões digitais TLS (JA3/JA4, HTTP/2 frames, cipher suites) simulando navegadores legítimos (Chrome, Safari, Firefox, Edge), contornando proteções WAF agressivas (Cloudflare, Akamai) sem a lentidão de navegadores headless (Selenium/Playwright).
+### 3.1. Networking Subsystem and TLS Impersonation (`yt_dlp.networking`)
+- **`RequestDirector` & `RequestHandler`**: A decoupled networking abstraction supporting multiple backends (`urllib`, `requests`, `websockets` and `curl_cffi`).
+- **Real Browser Impersonation**: Through `curl_cffi`, `yt-dlp` can force TLS fingerprints (JA3/JA4, HTTP/2 frames, cipher suites) that mimic legitimate browsers (Chrome, Safari, Firefox, Edge), getting past aggressive WAF protections (Cloudflare, Akamai) without the slowness of headless browsers (Selenium/Playwright).
 
-### 3.2. Extração Nativa de Cookies e Senhas (`yt_dlp.cookies`)
-- Lê os bancos SQLite de cookies de navegadores instalados no sistema operacional (Chrome, Edge, Brave, Opera, Vivaldi, Firefox, Safari).
-- Implementa a decriptação nativa de chaves mestras e senhas:
-  - **Windows**: DPAPI (`CryptUnprotectData`) + decriptação AES-256-GCM (esquema `v10`/`v20` do Chromium).
-  - **macOS**: Consulta ao Keychain do sistema.
+### 3.2. Native Cookie and Password Extraction (`yt_dlp.cookies`)
+- Reads the SQLite cookie databases of browsers installed on the operating system (Chrome, Edge, Brave, Opera, Vivaldi, Firefox, Safari).
+- Implements native decryption of master keys and passwords:
+  - **Windows**: DPAPI (`CryptUnprotectData`) + AES-256-GCM decryption (Chromium's `v10`/`v20` scheme).
+  - **macOS**: Queries the system Keychain.
   - **Linux**: D-Bus / Secret Service API (GNOME Keyring / KWallet).
 
-### 3.3. Interpretador JavaScript AST em Python Puro (`yt_dlp.jsinterp`)
-- Em vez de depender obrigatoriamente do Node.js instalado na máquina para resolver algoritmos dinâmicos de deofuscação de assinaturas do YouTube, o `yt-dlp` possui um interpretador JavaScript completo escrito em Python puro.
-- Ele tokeniza e executa manipulações de array (`slice`, `splice`, `reverse`), protótipos e operações bitwise de 32 bits diretamente na memória do processo Python.
-- Também oferece suporte transparente a runtimes externos (Deno, Bun, Node, QuickJS) se disponíveis.
+### 3.3. Pure-Python AST JavaScript Interpreter (`yt_dlp.jsinterp`)
+- Instead of requiring Node.js on the machine to solve YouTube's dynamic signature deobfuscation algorithms, `yt-dlp` includes a complete JavaScript interpreter written in pure Python.
+- It tokenizes and runs array manipulation (`slice`, `splice`, `reverse`), prototypes and 32-bit bitwise operations directly in the Python process memory.
+- It also transparently supports external runtimes (Deno, Bun, Node, QuickJS) when available.
 
-### 3.4. Criptografia Resiliente (`yt_dlp.aes`)
-- Streams HLS (`m3u8`) frequentemente entregam fragmentos cifrados com **AES-128-CBC**.
-- Se a biblioteca C `pycryptodomex` estiver instalada, ele a utiliza para velocidade máxima.
-- Caso contrário, ele cai automaticamente para uma implementação matemática completa de AES em Python puro (com tabelas S-Box e expansão de chaves), garantindo que o programa nunca quebre em ambientes restritos.
+### 3.4. Resilient Cryptography (`yt_dlp.aes`)
+- HLS (`m3u8`) streams often deliver fragments encrypted with **AES-128-CBC**.
+- If the `pycryptodomex` C library is installed, it is used for maximum speed.
+- Otherwise it automatically falls back to a complete mathematical AES implementation in pure Python (with S-Box tables and key expansion), so the program never breaks in restricted environments.
 
-### 3.5. Anti-Bot e PO Token Framework (`yt_dlp.extractor.youtube.pot` & `jsc`)
-- Arquitetura de provedores desacoplados para resolver o **PO Token (Proof-of-Origin Token)** e o Botguard/WebPO do YouTube para clientes Innertube (`WEB`, `ANDROID`, `TVHTML5`).
+### 3.5. Anti-Bot and PO Token Framework (`yt_dlp.extractor.youtube.pot` & `jsc`)
+- A decoupled provider architecture that resolves YouTube's **PO Token (Proof-of-Origin Token)** and Botguard/WebPO for Innertube clients (`WEB`, `ANDROID`, `TVHTML5`).
 
-### 3.6. Utilitário Declarativo `traverse_obj` (`yt_dlp.utils.traversal`)
-- Um motor de busca e transformação em árvores complexas de dicionários e listas de APIs. Permite navegação segura, filtros de tipo, transformações condicionais e fallbacks em uma única expressão elegante.
+### 3.6. Declarative `traverse_obj` Utility (`yt_dlp.utils.traversal`)
+- A search and transformation engine over complex trees of dictionaries and lists from APIs. It allows safe navigation, type filters, conditional transformations and fallbacks in a single elegant expression.
 
 ---
 
-## 4. Matriz de Dependências
+## 4. Dependency Matrix
 
-O projeto foi construído sob a filosofia de **Zero dependências externas obrigatórias** em Python:
+The project was built on a philosophy of **zero mandatory external Python dependencies**:
 
-| Componente | Tipo | Papel no Sistema | Impacto da Ausência |
+| Component | Type | Role in the System | Impact if Missing |
 | :--- | :--- | :--- | :--- |
-| **Python 3.10+** | **Mandatório** | Runtime base | Não funciona em versões antigas de Python. |
-| **FFmpeg & FFprobe** | **Binário de Sistema (Recomendado)** | Mesclagem de vídeo/áudio DASH, transcodificação, extração de áudio, legendas | Impossibilita baixar resoluções 1080p/4K/8K quando a plataforma serve faixas separadas de áudio e vídeo. |
-| **curl-cffi** | **Python (Opcional)** | Impersonação TLS de navegadores reais (evasão de WAF) | O sistema usa `urllib`/`requests`; sites protegidos por Cloudflare podem retornar HTTP 403. |
-| **pycryptodomex** | **Python (Opcional)** | Aceleração C de decriptação AES (HLS e cookies) | O sistema usa `aes.py` em Python puro (maior consumo de CPU em downloads pesados). |
-| **mutagen** | **Python (Opcional)** | Gravação de tags e metadados em arquivos de áudio (MP3, FLAC, M4A) | Metadados ID3/MP4 não são inseridos no arquivo final de áudio. |
-| **websockets** | **Python (Opcional)** | Comunicação WebSocket bidirecional | Streams de lives e chats em websocket falham. |
-| **brotli / brotlicffi** | **Python (Opcional)** | Descompressão de tráfego web Brotli (`br`) | Requisições a servidores que exigem compressão Brotli podem falhar. |
-| **certifi** | **Python (Opcional)** | Certificados SSL/TLS atualizados | Utiliza a cadeia de certificados do próprio sistema operacional. |
-| **Deno / Node / Bun** | **Binário de Sistema (Opcional)** | Runtimes externos para desafios JS complexos | Usa o interpretador nativo `jsinterp.py`. |
-| **aria2c** | **Binário de Sistema (Opcional)** | Downloader multi-conexão paralelo | Utiliza os downloaders nativos com uma conexão por fragmento. |
+| **Python 3.10+** | **Required** | Base runtime | Does not work on older Python versions. |
+| **FFmpeg & FFprobe** | **System Binary (Recommended)** | Merging DASH video/audio, transcoding, audio extraction, subtitles | Cannot download 1080p/4K/8K resolutions when the platform serves audio and video as separate tracks. |
+| **curl-cffi** | **Python (Optional)** | TLS impersonation of real browsers (WAF evasion) | Uses `urllib`/`requests`; Cloudflare-protected sites may return HTTP 403. |
+| **pycryptodomex** | **Python (Optional)** | C acceleration of AES decryption (HLS and cookies) | Uses pure-Python `aes.py` (higher CPU use on heavy downloads). |
+| **mutagen** | **Python (Optional)** | Writing tags and metadata into audio files (MP3, FLAC, M4A) | ID3/MP4 metadata is not written into the final audio file. |
+| **websockets** | **Python (Optional)** | Bidirectional WebSocket communication | Live streams and chats over WebSocket fail. |
+| **brotli / brotlicffi** | **Python (Optional)** | Decompressing Brotli (`br`) web traffic | Requests to servers that require Brotli compression may fail. |
+| **certifi** | **Python (Optional)** | Up-to-date SSL/TLS certificates | Uses the operating system's own certificate chain. |
+| **Deno / Node / Bun** | **System Binary (Optional)** | External runtimes for complex JS challenges | Uses the native `jsinterp.py` interpreter. |
+| **aria2c** | **System Binary (Optional)** | Parallel multi-connection downloader | Uses the native downloaders with one connection per fragment. |
 
 ---
 
-## 5. Auditoria de Segurança: Ameaças e "Surpresinhas" para Desavisados
+## 5. Security Audit: Threats and "Surprises" for the Unwary
 
-### 5.1. Veredito Geral de Segurança
+### 5.1. Overall Security Verdict
 > [!NOTE]
-> **Não há malware, cavalos de Troia, mineradores de criptomoeda, spyware ou backdoors nesta base de código.**  
-> O código é mantido sob licença de domínio público (**The Unlicense**), sendo um dos projetos abertos mais auditados globalmente.
+> **There is no malware, trojan, cryptocurrency miner, spyware or backdoor in this codebase.**  
+> The code is released into the public domain (**The Unlicense**) and is one of the most audited open-source projects worldwide.
 
-### 5.2. As 7 Armadilhas Técnicas ao Integrar em Outros Projetos
+### 5.2. The 7 Technical Traps When Integrating into Other Projects
 
-#### 1. Risco Crítico de SSRF (Server-Side Request Forgery)
-- **O que é:** Se sua aplicação expõe uma API que recebe URLs de usuários externos (ex: `POST /api/download {"url": "..."}`), o `yt-dlp` tentará se conectar a qualquer endereço enviado.
-- **A armadilha:** Um atacante pode enviar:
-  - `http://169.254.169.254/latest/meta-data/` (Endereço de metadados da AWS/GCP para roubar credenciais de IAM da máquina).
-  - `http://localhost:8000/admin` ou `http://192.168.1.50/` (Acessar bancos e serviços internos da sua rede privada).
-- **Defesa Obrigatória:** Valide e sanitize a URL antes de passá-la ao `yt-dlp`, rejeitando hosts locais e faixas de IP privadas (`127.0.0.0/8`, `10.0.0.0/8`, `192.168.0.0/16`, `169.254.0.0/16`).
+#### 1. Critical SSRF (Server-Side Request Forgery) Risk
+- **What it is:** If your application exposes an API that accepts URLs from external users (e.g. `POST /api/download {"url": "..."}`), `yt-dlp` will try to connect to any address sent.
+- **The trap:** An attacker can send:
+  - `http://169.254.169.254/latest/meta-data/` (the AWS/GCP metadata address, to steal the machine's IAM credentials).
+  - `http://localhost:8000/admin` or `http://192.168.1.50/` (to reach databases and internal services on your private network).
+- **Mandatory Defense:** Validate and sanitize the URL before passing it to `yt-dlp`, rejecting local hosts and private IP ranges (`127.0.0.0/8`, `10.0.0.0/8`, `192.168.0.0/16`, `169.254.0.0/16`).
 
-#### 2. Execução Arbitrária de Comandos Shell via `--exec` (`ExecPP`)
-- **O que é:** O pós-processador [`ExecPP`](https://github.com/yt-dlp/yt-dlp/blob/master/yt_dlp/postprocessor/exec.py) permite rodar comandos no terminal após o download via `Popen.run(cmd, shell=True)`.
-- **A armadilha:** Se você permitir que usuários passem parâmetros livres ou se montar comandos concatenando metadados de vídeos externos, pode haver injeção de comandos de terminal (RCE).
-- **Defesa Obrigatória:** Nunca permita que usuários configurem opções de pós-processamento de shell.
+#### 2. Arbitrary Shell Command Execution via `--exec` (`ExecPP`)
+- **What it is:** The [`ExecPP`](https://github.com/yt-dlp/yt-dlp/blob/master/yt_dlp/postprocessor/exec.py) post-processor runs terminal commands after the download via `Popen.run(cmd, shell=True)`.
+- **The trap:** If you let users pass free-form parameters, or build commands by concatenating metadata from external videos, terminal command injection (RCE) becomes possible.
+- **Mandatory Defense:** Never let users configure shell post-processing options.
 
-#### 3. Vazamento de Arquivos do Servidor (`enable_file_urls`)
-- **O que é:** O protocolo `file://` permite ler arquivos locais do sistema operacional (ex: `file:///etc/passwd` ou `file:///C:/Windows/win.ini`).
-- **A armadilha:** Se você habilitar `'enable_file_urls': True` nas opções, o `yt-dlp` lerá arquivos confidenciais do servidor.
-- **Defesa Obrigatória:** O `yt-dlp` desativa isso por padrão (`enable_file_urls: False`). **Mantenha desativado.**
+#### 3. Leaking Server Files (`enable_file_urls`)
+- **What it is:** The `file://` protocol can read local operating system files (e.g. `file:///etc/passwd` or `file:///C:/Windows/win.ini`).
+- **The trap:** If you enable `'enable_file_urls': True` in the options, `yt-dlp` will read confidential files from the server.
+- **Mandatory Defense:** `yt-dlp` disables this by default (`enable_file_urls: False`). **Keep it disabled.**
 
-#### 4. Decriptação Invasiva de Cookies Locais (`cookiesfrombrowser`)
-- **O que é:** O parâmetro `cookiesfrombrowser` acessa o banco de dados dos navegadores instalados no computador e decodifica as credenciais via DPAPI no Windows ou Keychain no macOS.
-- **A armadilha:** Se executado no ambiente de trabalho de um desenvolvedor com essa flag ativa, ele carrega todos os cookies de sessão dos sites pessoais do usuário para o processo.
-- **Defesa Obrigatória:** Em servidores de produção, utilize arquivos de cookies estáticos exportados (`cookiefile`), nunca a extração automática do navegador local.
+#### 4. Invasive Decryption of Local Cookies (`cookiesfrombrowser`)
+- **What it is:** The `cookiesfrombrowser` parameter opens the databases of the browsers installed on the computer and decrypts the credentials via DPAPI on Windows or Keychain on macOS.
+- **The trap:** If run on a developer's workstation with this flag on, it loads every session cookie of the user's personal sites into the process.
+- **Mandatory Defense:** On production servers, use static exported cookie files (`cookiefile`), never automatic extraction from the local browser.
 
-#### 5. Ataques de Negação de Serviço (DoS) por Esgotamento de Recursos
-- **A armadilha:** 
-  - **Playlists Gigantes:** Uma URL com uma playlist de 5.000 vídeos fará o `yt-dlp` tentar baixar tudo em sequência, enchendo o disco e a memória do servidor.
-  - **Live Streams Infinitas:** Se a URL for uma transmissão ao vivo 24/7, o download continuará gravando no disco indefinidamente até travar a máquina.
-- **Defesa Obrigatória:** Defina sempre `'noplaylist': True`, `'max_downloads': 1`, limites de tamanho (`max_filesize`) e filtros de duração via `match_filter`.
+#### 5. Denial of Service (DoS) by Resource Exhaustion
+- **The trap:** 
+  - **Huge Playlists:** A URL pointing to a 5,000-video playlist makes `yt-dlp` try to download everything in sequence, filling the server's disk and memory.
+  - **Endless Live Streams:** If the URL is a 24/7 live stream, the download keeps writing to disk indefinitely until the machine stalls.
+- **Mandatory Defense:** Always set `'noplaylist': True`, `'max_downloads': 1`, size limits (`max_filesize`) and duration filters via `match_filter`.
 
-#### 6. Vulnerabilidade de Path Traversal no Seu Próprio Código
-- **O que é:** Títulos de vídeos na internet podem conter sequências maliciosas como `../../../../etc/cron.d/script`.
-- **A armadilha:** O `yt-dlp` sanitiza os arquivos que *ele* grava. Porém, se você pegar a string `info['title']` e concatenar na sua própria lógica de arquivos (ex: `open(f"/storage/{info['title']}.mp4")`), **o seu código criará a falha de Path Traversal**.
-- **Defesa Obrigatória:** Sempre utilize `ydl.prepare_filename(info)` ou passe o título por `yt_dlp.utils.sanitize_filename()`.
+#### 6. Path Traversal Vulnerability in Your Own Code
+- **What it is:** Video titles on the internet can contain malicious sequences such as `../../../../etc/cron.d/script`.
+- **The trap:** `yt-dlp` sanitizes the files *it* writes. But if you take the `info['title']` string and concatenate it into your own file logic (e.g. `open(f"/storage/{info['title']}.mp4")`), **your code creates the path traversal flaw**.
+- **Mandatory Defense:** Always use `ydl.prepare_filename(info)` or pass the title through `yt_dlp.utils.sanitize_filename()`.
 
-#### 7. Carregamento de Plugins Dinâmicos (`plugins.py`)
-- **O que é:** O `yt-dlp` carrega extensões dinamicamente das pastas `%APPDATA%/yt-dlp/plugins` ou `~/.config/yt-dlp/plugins`.
-- **A armadilha:** Em servidores multiusuário, se permissões dessas pastas forem permissivas, outro usuário pode injetar um script Python que será executado pelo `yt-dlp`.
+#### 7. Dynamic Plugin Loading (`plugins.py`)
+- **What it is:** `yt-dlp` dynamically loads extensions from the `%APPDATA%/yt-dlp/plugins` or `~/.config/yt-dlp/plugins` folders.
+- **The trap:** On multi-user servers, if those folders have permissive permissions, another user can inject a Python script that `yt-dlp` will execute.
 
 ---
 
-## 6. Guia Prático de Implementação e Código Seguro
+## 6. Practical Implementation Guide and Secure Code
 
-### 6.1. Template Seguro (Hardened) para Backends e APIs
-Adote este padrão blindado em seus projetos:
+### 6.1. Secure (Hardened) Template for Backends and APIs
+Adopt this hardened pattern in your projects:
 
 ```python
 import asyncio
@@ -199,34 +199,34 @@ from yt_dlp.utils import DownloadError, match_filter_func
 
 def get_safe_ydl_options(download=False, max_duration_seconds=1800):
     """
-    Retorna opções blindadas contra DoS, SSRF e execução indevida.
+    Returns options hardened against DoS, SSRF and unintended execution.
     """
     return {
         'quiet': True,
         'no_warnings': True,
         
-        # 1. Blindagem de Rede e Protocolos
-        'enable_file_urls': False,               # Bloqueia file://
-        'socket_timeout': 15,                    # Evita travamento de conexões
+        # 1. Network and protocol hardening
+        'enable_file_urls': False,               # Blocks file://
+        'socket_timeout': 15,                    # Avoids hung connections
         
-        # 2. Blindagem de Recursos
-        'noplaylist': True,                      # Rejeita playlists massivas
-        'max_downloads': 1,                      # Baixa no máximo 1 item
-        'max_filesize': 250 * 1024 * 1024,       # Limite de 250MB
-        'simulate': not download,                # Não baixa se for só metadados
+        # 2. Resource hardening
+        'noplaylist': True,                      # Rejects massive playlists
+        'max_downloads': 1,                      # Downloads at most 1 item
+        'max_filesize': 250 * 1024 * 1024,       # 250 MB limit
+        'simulate': not download,                # Skips the download when only metadata is needed
         
-        # 3. Filtro contra Lives e Vídeos Longos
+        # 3. Filter against live streams and long videos
         'match_filter': match_filter_func(
             f'!is_live & duration <= {max_duration_seconds}'
         ),
         
-        # 4. Formato Seguro
+        # 4. Safe format
         'format': 'bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best',
-        'outtmpl': 'downloads/%(id)s.%(ext)s',   # Nome seguro baseado no ID
+        'outtmpl': 'downloads/%(id)s.%(ext)s',   # Safe name based on the ID
     }
 
-# Execução assíncrona sem travar o Event Loop do FastAPI/Tornado
-async def extrair_video_seguro(url: str):
+# Asynchronous execution without blocking the FastAPI/Tornado event loop
+async def extract_video_safely(url: str):
     loop = asyncio.get_running_loop()
     opts = get_safe_ydl_options(download=False)
     
@@ -244,17 +244,17 @@ async def extrair_video_seguro(url: str):
             'uploader': info.get('uploader'),
         }
     except DownloadError as e:
-        # Tratar falha sem expor rastros internos do sistema
-        return {'error': 'Falha ao processar a mídia fornecida.'}
+        # Handle the failure without exposing internal system traces
+        return {'error': 'Failed to process the provided media.'}
 ```
 
-### 6.2. Pipeline de Ingestão de Áudio para IA (Whisper / Modelos de Fala)
-Para alimentar modelos de transcrição ou LLMs de áudio diretamente:
+### 6.2. Audio Ingestion Pipeline for AI (Whisper / Speech Models)
+To feed transcription models or audio LLMs directly:
 
 ```python
 from yt_dlp import YoutubeDL
 
-def baixar_audio_para_ia(url: str, output_dir: str):
+def download_audio_for_ai(url: str, output_dir: str):
     opts = {
         'format': 'bestaudio/best',
         'outtmpl': f'{output_dir}/%(id)s.%(ext)s',
@@ -271,8 +271,8 @@ def baixar_audio_para_ia(url: str, output_dir: str):
         return f"{output_dir}/{info['id']}.wav"
 ```
 
-### 6.3. Streaming de Progresso via WebSocket em Tempo Real
-Para exibir o progresso de download em tempo real no front-end:
+### 6.3. Real-Time Progress Streaming over WebSocket
+To show download progress in real time in the front end:
 
 ```python
 def make_progress_hook(websocket_sender):
@@ -294,9 +294,8 @@ def make_progress_hook(websocket_sender):
 
 ---
 
-## 7. Conclusão e Recomendações Estratégicas
+## 7. Conclusion and Strategic Recommendations
 
-1. **Aproveitamento em Novos Projetos**: O `yt-dlp` é a solução mais completa e performática do mercado para ingestão e extração de metadados multimídia.
-2. **Reutilização Modular**: Além de usá-lo como um todo, funções específicas como [`traverse_obj`](https://github.com/yt-dlp/yt-dlp/blob/master/yt_dlp/utils/traversal.py) (processamento de JSON) e [`extract_cookies_from_browser`](https://github.com/yt-dlp/yt-dlp/blob/master/yt_dlp/cookies.py) (autenticação) podem ser utilizadas isoladamente em qualquer outro robô ou automação.
-3. **Produção**: Nunca execute o `yt-dlp` de forma síncrona dentro da thread principal de servidores assíncronos e sempre aplique a blindagem contra SSRF e DoS descrita na Seção 6.
-
+1. **Use in New Projects**: `yt-dlp` is the most complete and best-performing solution on the market for multimedia ingestion and metadata extraction.
+2. **Modular Reuse**: Beyond using it as a whole, specific functions such as [`traverse_obj`](https://github.com/yt-dlp/yt-dlp/blob/master/yt_dlp/utils/traversal.py) (JSON processing) and [`extract_cookies_from_browser`](https://github.com/yt-dlp/yt-dlp/blob/master/yt_dlp/cookies.py) (authentication) can be used on their own in any other bot or automation.
+3. **Production**: Never run `yt-dlp` synchronously on the main thread of asynchronous servers, and always apply the SSRF and DoS hardening described in Section 6.

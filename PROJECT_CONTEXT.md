@@ -1,87 +1,86 @@
-# MusicMatch - Contexto e Diretrizes do Projeto
+# MusicMatch - Project Context and Guidelines
 
-## 1. Persona de Atuação
-O projeto é concebido e conduzido sob a ótica combinada de duas disciplinas de engenharia:
-* **Engenheiro de Software**: Arquitetura de sistemas, estruturas de dados, concorrência, otimização de I/O em disco, bancos de dados locais, APIs assíncronas, filas de processamento, interoperabilidade Python-Rust e orquestração de agentes.
-* **Engenheiro de Som / Especialista em DSP & Music AI**: Processamento de sinais de áudio, psicoacústica, análise espectral (FFT), medição de loudness (LUFS/EBU R128), detecção de BPM e harmonia, transcrição musical, modelos neurais de áudio e curadoria acústica.
-
----
-
-## 2. Diretrizes e Requisitos Definidos
-
-### A. Domínio e Escopo
-* **Manipulação e Reprodução de Áudio**: Foco inicial no formato MP3, com arquitetura expansível para outros formatos (FLAC, WAV, AAC, OGG, etc.).
-* **Grandes Bibliotecas Locais**: Projetado para gerenciar e indexar coleções volumosas (10.000 a 100.000+ arquivos) com alta performance, baixo uso de memória e buscas instantâneas.
-* **Plataforma / Ambiente**: Aplicação projetada para rodar **localmente no PC do usuário (Windows)**, garantindo privacidade, velocidade máxima de acesso ao disco e operação independente.
-
-### B. Envolvimento Massivo de Inteligência Artificial (IA-Native)
-* **Orquestração de Agentes**: Uso do **Google Antigravity SDK** para orquestrar agentes e subagentes autônomos para automação de tarefas, curadoria e auditoria.
-* **Processamento Assíncrono em Lote**: Filas de tarefas em segundo plano para indexação, geração de mini-waveforms, extração acústica e análise de letras sem congelar a UI ou interromper a reprodução.
-* **Compreensão Semântica & Multimodal**:
-  * Análise de letras, identificação de humor (*mood*), geração de metadados enriquecidos e busca em linguagem natural por afinidade musical ("vibe").
-  * Capacidades de escuta direta de áudio (multimodal via Gemini) para entender arranjos, timbres e características musicais.
-  * Execução híbrida: Modelos em nuvem (Gemini 3.6 Flash / 3.1 Pro) e modelos locais on-device (família Gemma 4 via LiteRT/GPU).
-
-### C. Stack Tecnológica Confirmada
-* **Linguagem de Orquestração & Backend**: **Python 3.14.6**
-  * Responsável pela orquestração de agentes com o **Google Antigravity SDK**, integrações de IA com `google-genai` e camada de serviço local (FastAPI / WebSockets).
-* **Linguagem de Alta Performance & DSP**: **Rust**
-  * Responsável por operações críticas de I/O em disco (varredura multi-thread de 100k arquivos com Rayon), leitura de tags/headers (`lofty`/`symphonia`), algoritmos numéricos de DSP (BPM, LUFS, Mini-Waveforms com SIMD) e manipulação ultrarrápida do SQLite.
-  * **Padrão de FFI / Zero GIL Overhead**: O Rust processa os arquivos e grava em lote diretamente no SQLite local, notificando o Python por eventos assíncronos (sem converter centenas de milhares de objetos na memória).
-  * **Tratamento Resiliente de Erros**: Arquivos corrompidos ou anômalos são catalogados em tabela de auditoria para inspeção pelo Agente Auditor do Antigravity.
-  * **Ponte de Interoperabilidade**: **PyO3 + Maturin** (compilação de extensões nativas C-ABI em Rust consumíveis diretamente como módulos Python sem overhead de IPC).
-* **Validação de Dados & Contratos de Domínio**: **Pydantic V2** (`pydantic.BaseModel`)
-  * Responsável pela integridade e validação em tempo de execução dos metadados de áudio e geração de contratos JSON Schema para as ferramentas do Gemini (`google-genai`).
-* **Banco de Dados Local**: **SQLite** embarcado com **FTS5** (busca textual instantânea) e extensão vetorial (`sqlite-vec`).
-* **Interface & Harness**: **Harness Interativo** com separação da camada de apresentação (`ConsoleUI`), despachante de comandos do sistema (`CommandRegistry`) e desacoplamento para futura interface gráfica (WebSockets / Desktop).
+## 1. Working Persona
+The project is conceived and driven from the combined viewpoint of two engineering disciplines:
+* **Software Engineer**: Systems architecture, data structures, concurrency, disk I/O optimization, local databases, asynchronous APIs, processing queues, Python-Rust interoperability and agent orchestration.
+* **Sound Engineer / DSP & Music AI Specialist**: Audio signal processing, psychoacoustics, spectral analysis (FFT), loudness measurement (LUFS/EBU R128), BPM and harmony detection, music transcription, neural audio models and acoustic curation.
 
 ---
 
-## 3. Direcionamento Arquitetural
+## 2. Defined Guidelines and Requirements
+
+### A. Domain and Scope
+* **Audio Handling and Playback**: Initial focus on the MP3 format, with an architecture that extends to other formats (FLAC, WAV, AAC, OGG, etc.).
+* **Large Local Libraries**: Designed to manage and index large collections (10,000 to 100,000+ files) with high performance, low memory use and instant search.
+* **Platform / Environment**: An application designed to run **locally on the user's PC (Windows)**, ensuring privacy, maximum disk access speed and independent operation.
+
+### B. Extensive Use of Artificial Intelligence (AI-Native)
+* **Agent Orchestration**: Uses the **Google Antigravity SDK** to orchestrate autonomous agents and subagents for task automation, curation and auditing.
+* **Asynchronous Batch Processing**: Background task queues for indexing, mini-waveform generation, acoustic extraction and lyrics analysis without freezing the UI or interrupting playback.
+* **Semantic & Multimodal Understanding**:
+  * Lyrics analysis, mood identification, enriched metadata generation and natural-language search by musical affinity ("vibe").
+  * Direct audio listening capabilities (multimodal via Gemini) to understand arrangements, timbres and musical characteristics.
+  * Hybrid execution: cloud models (Gemini 3.6 Flash / 3.1 Pro) and local on-device models (Gemma 4 family via LiteRT/GPU).
+
+### C. Confirmed Technology Stack
+* **Orchestration & Backend Language**: **Python 3.14.6**
+  * Responsible for agent orchestration with the **Google Antigravity SDK**, AI integrations with `google-genai`, and the local service layer (FastAPI / WebSockets).
+* **High-Performance & DSP Language**: **Rust**
+  * Responsible for critical disk I/O (multi-threaded scanning of 100k files with Rayon), tag/header reading (`lofty`/`symphonia`), numerical DSP algorithms (BPM, LUFS, mini-waveforms with SIMD) and very fast SQLite access.
+  * **FFI Pattern / Zero GIL Overhead**: Rust processes the files and writes in batches directly to the local SQLite database, notifying Python through asynchronous events (without converting hundreds of thousands of objects in memory).
+  * **Resilient Error Handling**: Corrupted or anomalous files are cataloged in an audit table for inspection by the Antigravity Auditor Agent.
+  * **Interoperability Bridge**: **PyO3 + Maturin** (compiles native C-ABI Rust extensions consumable directly as Python modules, with no IPC overhead).
+* **Data Validation & Domain Contracts**: **Pydantic V2** (`pydantic.BaseModel`)
+  * Responsible for runtime integrity and validation of audio metadata and for generating JSON Schema contracts for the Gemini tools (`google-genai`).
+* **Local Database**: Embedded **SQLite** with **FTS5** (instant text search) and a vector extension (`sqlite-vec`).
+* **Interface & Harness**: An **Interactive Harness** with a separate presentation layer (`ConsoleUI`), a system command dispatcher (`CommandRegistry`) and decoupling for a future graphical interface (WebSockets / Desktop).
+
+---
+
+## 3. Architectural Direction
 
 ```
 ┌──────────────────────────────────────────────────────────────────────────────┐
-│                             ARQUITETURA MUSICMATCH                           │
+│                            MUSICMATCH ARCHITECTURE                           │
 ├──────────────────────────────────────────────────────────────────────────────┤
 │  [ Interface / Harness ]                                                     │
-│    ├── ConsoleUI (Apresentação, Banners, Observabilidade ReAct desacoplada)  │
+│    ├── ConsoleUI (Presentation, Banners, Decoupled ReAct Observability)      │
 │    ├── Command Registry (Slash Commands: /help, /status, /scan, /exit)       │
-│    └── Event Loop (Roteamento de Comandos vs Linguagem Natural)              │
-│                             │ (Chamada Direta ou WebSockets / REST IPC)      │
+│    └── Event Loop (Routing Commands vs Natural Language)                     │
+│                             │ (Direct Call or WebSockets / REST IPC)         │
 │                             ▼                                                │
-│  [ Camada de Orquestração & IA - Python 3.14.6 ]                             │
-│    ├── Google Antigravity SDK (Agente Principal e Subagentes Autônomos)     │
+│  [ Orchestration & AI Layer - Python 3.14.6 ]                                │
+│    ├── Google Antigravity SDK (Main Agent and Autonomous Subagents)          │
 │    ├── Google GenAI SDK (Gemini 3.6 Flash / 3.1 Pro Multimodal)              │
-│    ├── Pydantic V2 (Modelos de Domínio, Validação e JSON Schemas)            │
-│    ├── Servidor Local de APIs (FastAPI / WebSockets)                         │
+│    ├── Pydantic V2 (Domain Models, Validation and JSON Schemas)              │
+│    ├── Local API Server (FastAPI / WebSockets)                               │
 │    │                                                                         │
-│    │  import musicmatch_core (Ponte PyO3 / Maturin - Dispara Tarefas)        │
+│    │  import musicmatch_core (PyO3 / Maturin Bridge - Dispatches Tasks)      │
 │    ▼                                                                         │
-│  [ Camada de Alta Performance & DSP - Rust ]                                 │
-│    ├── Multi-threaded File Scanner (Rayon para 100k+ faixas)                 │
+│  [ High-Performance & DSP Layer - Rust ]                                     │
+│    ├── Multi-threaded File Scanner (Rayon for 100k+ tracks)                  │
 │    ├── Tag & Bitstream Parser (lofty / symphonia)                            │
-│    ├── DSP Engine (BPM, LUFS EBU R128, Mini-Waveforms com SIMD)              │
-│    ├── Tratamento de Erros & Log de Integridade (sem panics)                 │
-│    └── Gravação Direta em Lote (SQLite + FTS5 + sqlite-vec)                  │
+│    ├── DSP Engine (BPM, LUFS EBU R128, Mini-Waveforms with SIMD)             │
+│    ├── Error Handling & Integrity Log (no panics)                            │
+│    └── Direct Batch Writes (SQLite + FTS5 + sqlite-vec)                      │
 │                                                                              │
-│  ◄── Evento Assíncrono de Conclusão / Progresso para o Python ───────────────┘
+│  ◄── Asynchronous Completion / Progress Event to Python ─────────────────────┘
 └──────────────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## 4. Diretrizes de Idioma e Nomenclatura (Padrão: EN-INT)
+## 4. Language and Naming Guidelines (Standard: EN-INT)
 
-A partir de agora, o projeto adota o **Inglês Internacional (EN-INT)** como padrão unificado para documentação técnica e pública:
+The project uses **International English (EN-INT)** as the single standard for technical and public documentation:
 
-* **Código-Fonte e Nomenclatura (EN-INT Obrigatório)**:
-  * Nomes de arquivos e pastas
-  * Nomes de módulos, pacotes, classes, funções, variáveis e serviços
-  * Comentários e docstrings no código-fonte
-  * Mensagens de commit no Git (Conventional Commits)
-* **Documentação Técnica e Pública (`docs/`, `README.md`, ADRs - EN-INT Obrigatório)**:
-  * Daqui em diante, todos os novos documentos, especificações de arquitetura, ADRs, relatórios técnicos e textos públicos devem ser redigidos em **Inglês Internacional (EN-INT)**.
-  * Documentos legados anteriores permanecem para preservação de histórico, mas novas adições e revisões adotam estritamente EN-INT.
-* **Interação e Conversação no Chat**:
-  * Todas as conversas, explicações e respostas no chat com o usuário permanecem em **Português (Brasil)** (ou conforme a língua preferida pelo usuário na sessão).
-
+* **Source Code and Naming (EN-INT Required)**:
+  * File and folder names
+  * Module, package, class, function, variable and service names
+  * Comments and docstrings in the source code
+  * Git commit messages (Conventional Commits)
+* **Technical and Public Documentation (`docs/`, `README.md`, ADRs - EN-INT Required)**:
+  * All documents, architecture specifications, ADRs, technical reports and public texts are written in **International English (EN-INT)**.
+  * Documents originally written in Portuguese were translated to English (issue #20).
+* **Chat Interaction and Conversation**:
+  * Conversations, explanations and answers in the chat with the user stay in **Portuguese (Brazil)** (or the user's preferred language for the session).

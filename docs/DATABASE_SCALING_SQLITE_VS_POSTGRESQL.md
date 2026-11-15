@@ -1,163 +1,163 @@
-# Estudo Técnico de Engenharia: SQLite vs PostgreSQL em Larga Escala (1.000.000 de Faixas)
+# Engineering Technical Study: SQLite vs PostgreSQL at Large Scale (1,000,000 Tracks)
 
-**Projeto**: MusicMatch  
-**Data**: 2026-09-05  
-**Autor**: Engenharia de Software & DSP / AI Architect  
-**Status**: Referência Técnica & Roadmap de Migração Futura  
-
----
-
-## 1. Contexto e Premissas do Cenário
-
-O MusicMatch tem como visão gerenciar coleções volumosas de áudio com alta performance, integrando orquestração de agentes de Inteligência Artificial (**Google Antigravity SDK**), processamento de sinais de áudio / DSP em **Rust** e consultas expressivas em linguagem natural ou determinísticas.
-
-Este estudo analisa formalmente a sustentabilidade do motor de persistência atual (**SQLite com FTS5**) em comparação com uma migração para **PostgreSQL (com `pgvector` e `pg_trgm`)**, considerando as seguintes condições de contorno:
-
-1. **Volume de Catálogo**: 1.000.000 de faixas musicais indexadas.
-2. **Consultas Multicritério Determinísticas / Procedimentais**:
-   * **BPM**: Filtros por faixa, tolerância percentual ($\pm 5\%$) e relações harmônicas ($0.5\times$ *half-time*, $2.0\times$ *double-time*).
-   * **Ano de Lançamento**: Janelas de proximidade temporal com decaimento gaussiano (ex: anos 80, anos 90, $\pm 3$ anos).
-   * **Gênero Musical**: Similaridade categórica e hierárquica (ex: *House* $\approx$ *Tech-House*).
-   * **Artista**: Correspondência aproximada e grafos de similaridade de estilo.
-   * **Título**: Prioridade deliberadamente menor em buscas de recomendação/vibe.
-   * **Métricas Musicais Estendidas**: Tipo de composição, andamento (*meter* / fórmula de compasso 4/4, 3/4), tonalidade (*Camelot Wheel* / Key), *Loudness* (LUFS EBU R128).
-3. **Consultas Semânticas Comandadas por LLMs**:
-   * Necessidade de componente vetorial (*embeddings* de áudio, humor, letras e descrições semânticas).
-   * Consultas híbridas: mescla de restrições rígidas relacionais (*hard filters*) com ordenação por similaridade de cosseno de vetores densos.
-4. **Ferramental Tradicional de Manutenção**:
-   * Disponibilidade, ergonomia e profundidade de ferramentas clássicas de administração (DBeaver, DataGrip, pgAdmin, visualização de planos de execução `EXPLAIN ANALYZE`).
-5. **Complexidade de Manutenção**:
-   * Ponderada com peso moderado (a qualidade técnica da solução e a escalabilidade prevalecem sobre a complexidade de setup).
+**Project**: MusicMatch  
+**Date**: 2026-09-05  
+**Author**: Software Engineering & DSP / AI Architect  
+**Status**: Technical Reference & Future Migration Roadmap  
 
 ---
 
-## 2. Dimensionamento e Volumetria para 1.000.000 de Faixas
+## 1. Context and Scenario Assumptions
 
-### A. Tabela Relacional e Metadados Estruturados
-* **Linha típica**: ID (UUID ou string curta), Título, Artista, Álbum, Gênero, Ano, Duração, Bitrate, BPM, Tonalidade, Compasso, Tipo de Composição, Caminho do Arquivo, Mood, LUFS, Timestamps.
-* **Tamanho médio por tupla**: ~600 bytes.
-* **Armazenamento bruto (1M registros)**: **~600 MB**.
-* **Índices Relacionais B-Tree**:
-  * `(bpm)`, `(year)`, `(genre)`, `(artist)`, `(file_path)`: **~350 MB a 500 MB**.
+MusicMatch aims to manage large audio collections with high performance, combining Artificial Intelligence agent orchestration (**Google Antigravity SDK**), audio signal processing / DSP in **Rust**, and expressive natural-language or deterministic queries.
 
-### B. Componente Textual / Trigramas
-* Busca fonética e difusa (*fuzzy*) por artista, álbum e gênero (para absorver erros de digitação):
-  * **Índices GIN com `pg_trgm` ou FTS5**: **~500 MB a 800 MB**.
+This study formally assesses how sustainable the current persistence engine (**SQLite with FTS5**) is compared with a migration to **PostgreSQL (with `pgvector` and `pg_trgm`)**, under the following boundary conditions:
 
-### C. Componente Vetorial (Embeddings de Vibe / Áudio / LLM)
-* **Dimensão do Vetor**: 768 dimensões (padrão de embeddings de texto do Gemini ou embeddings de áudio como CLAP/MuLan).
-* **Armazenamento Bruto dos Vetores**:
-  * Em `Float32` (4 bytes/dim): $768 \times 4 = 3.072\text{ bytes/faixa} \times 10^6 \approx \mathbf{3,07\text{ GB}}$.
-  * Em `Halfvec` / Float16 (2 bytes/dim): $768 \times 2 = 1.536\text{ bytes/faixa} \times 10^6 \approx \mathbf{1,54\text{ GB}}$.
-* **Índice Vetorial HNSW (Hierarchical Navigable Small World)**:
-  * Sobrecarga de grafos de vizinhança: $1,3\times$ a $1,8\times$ o tamanho dos vetores brutos: **~2,5 GB a 5,0 GB**.
-
-> **Resumo de Armazenamento Consolidado**:
-> * **Total em Disco (Relacional + FTS + Vetores HNSW)**: **~6 GB a 9 GB**.
-> * **Consumo de Memória Operacional Recomendado (RAM)**: Mínimo de **4 GB a 8 GB** dedicados ao banco de dados para manter páginas de índice HNSW em cache e evitar leituras aleatórias em SSD/NVMe.
+1. **Catalog Volume**: 1,000,000 indexed music tracks.
+2. **Deterministic / Procedural Multi-Criteria Queries**:
+   * **BPM**: Range filters, percentage tolerance ($\pm 5\%$) and harmonic relationships ($0.5\times$ *half-time*, $2.0\times$ *double-time*).
+   * **Release Year**: Time-proximity windows with Gaussian decay (e.g. the 80s, the 90s, $\pm 3$ years).
+   * **Music Genre**: Categorical and hierarchical similarity (e.g. *House* $\approx$ *Tech-House*).
+   * **Artist**: Approximate matching and style-similarity graphs.
+   * **Title**: Deliberately lower priority in recommendation/vibe searches.
+   * **Extended Musical Metrics**: Composition type, meter (time signature 4/4, 3/4), key (*Camelot Wheel* / Key), *Loudness* (LUFS EBU R128).
+3. **LLM-Driven Semantic Queries**:
+   * Needs a vector component (*embeddings* of audio, mood, lyrics and semantic descriptions).
+   * Hybrid queries: combining strict relational constraints (*hard filters*) with ordering by cosine similarity of dense vectors.
+4. **Traditional Maintenance Tooling**:
+   * Availability, ergonomics and depth of classic administration tools (DBeaver, DataGrip, pgAdmin, visual `EXPLAIN ANALYZE` execution plans).
+5. **Maintenance Complexity**:
+   * Given moderate weight (technical quality and scalability of the solution outweigh setup complexity).
 
 ---
 
-## 3. Análise Comparativa dos Motores
+## 2. Sizing and Data Volume for 1,000,000 Tracks
+
+### A. Relational Table and Structured Metadata
+* **Typical row**: ID (UUID or short string), Title, Artist, Album, Genre, Year, Duration, Bitrate, BPM, Key, Meter, Composition Type, File Path, Mood, LUFS, Timestamps.
+* **Average tuple size**: ~600 bytes.
+* **Raw storage (1M records)**: **~600 MB**.
+* **Relational B-Tree Indexes**:
+  * `(bpm)`, `(year)`, `(genre)`, `(artist)`, `(file_path)`: **~350 MB to 500 MB**.
+
+### B. Text / Trigram Component
+* Phonetic and fuzzy search by artist, album and genre (to absorb typos):
+  * **GIN indexes with `pg_trgm` or FTS5**: **~500 MB to 800 MB**.
+
+### C. Vector Component (Vibe / Audio / LLM Embeddings)
+* **Vector Dimension**: 768 dimensions (standard Gemini text embeddings or audio embeddings such as CLAP/MuLan).
+* **Raw Vector Storage**:
+  * In `Float32` (4 bytes/dim): $768 \times 4 = 3{,}072\text{ bytes/track} \times 10^6 \approx \mathbf{3.07\text{ GB}}$.
+  * In `Halfvec` / Float16 (2 bytes/dim): $768 \times 2 = 1{,}536\text{ bytes/track} \times 10^6 \approx \mathbf{1.54\text{ GB}}$.
+* **HNSW (Hierarchical Navigable Small World) Vector Index**:
+  * Neighborhood graph overhead: $1.3\times$ to $1.8\times$ the size of the raw vectors: **~2.5 GB to 5.0 GB**.
+
+> **Consolidated Storage Summary**:
+> * **Total on Disk (Relational + FTS + HNSW Vectors)**: **~6 GB to 9 GB**.
+> * **Recommended Operating Memory (RAM)**: At least **4 GB to 8 GB** dedicated to the database to keep HNSW index pages cached and avoid random reads on SSD/NVMe.
+
+---
+
+## 3. Comparative Analysis of the Engines
 
 ```
                     ┌────────────────────────────────────────────────────────┐
                     │                   MUSICMATCH ENGINE                    │
-                    │               1.000.000 Faixas Musicais                │
+                    │                1,000,000 Music Tracks                  │
                     └──────────────────────────┬─────────────────────────────┘
                                                │
                ┌───────────────────────────────┴───────────────────────────────┐
                ▼                                                               ▼
 ┌──────────────────────────────┐                              ┌──────────────────────────────┐
 │       SQLite 3 + FTS5        │                              │   PostgreSQL 16 + pgvector   │
-│   (Embarcado / In-Process)   │                              │     (Cliente / Servidor)     │
+│   (Embedded / In-Process)    │                              │       (Client / Server)      │
 ├──────────────────────────────┤                              ├──────────────────────────────┤
-│ • Latência: ~10-30 µs        │                              │ • Latência: ~300-800 µs      │
-│ • Arquivo único (.db local)  │                              │ • Daemon/Serviço (Porta 5432)│
-│ • Single-Core por Query      │                              │ • Multi-Core Paralelo        │
-│ • Single-Writer Lock (WAL)   │                              │ • MVCC Completo (Multi-write)│
-│ • `sqlite-vec` experimental  │                              │ • `pgvector` industrial      │
-│ • Ferramentas: Básicas       │                              │ • Ferramentas: Enterprise    │
+│ • Latency: ~10-30 µs         │                              │ • Latency: ~300-800 µs       │
+│ • Single file (local .db)    │                              │ • Daemon/Service (Port 5432) │
+│ • Single-Core per Query      │                              │ • Parallel Multi-Core        │
+│ • Single-Writer Lock (WAL)   │                              │ • Full MVCC (Multi-write)    │
+│ • `sqlite-vec` experimental  │                              │ • Industrial `pgvector`      │
+│ • Tooling: Basic             │                              │ • Tooling: Enterprise        │
 └──────────────────────────────┘                              └──────────────────────────────┘
 ```
 
-### 3.1. SQLite: Pontos Fortes e Gargalos Críticos
+### 3.1. SQLite: Strengths and Critical Bottlenecks
 
-#### Vantagens
-1. **Latência de Leitura Zero-IPC**:
-   * O SQLite roda diretamente no espaço de memória da aplicação (Python ou Rust via FFI C-ABI). Não há serialização TCP, context-switch de SO ou loopback networking. Leituras unitárias ocorrem em microssegundos.
-2. **Arquitetura Zero-Dependência**:
-   * Todo o catálogo reside em um arquivo único (`musicmatch.db`).
-   * Backup atômico simples (cópia direta do arquivo ou comando `VACUUM INTO`).
-   * Distribuição para o usuário final sem necessidade de gerenciar serviços de segundo plano do Windows.
-3. **Escrita em Lote Simples no Rust**:
-   * A crate `rusqlite` permite que threads em Rust abram transações diretas com baixo consumo de memória.
+#### Advantages
+1. **Zero-IPC Read Latency**:
+   * SQLite runs directly in the application's memory space (Python, or Rust via C-ABI FFI). There is no TCP serialization, OS context switch or loopback networking. Single reads take microseconds.
+2. **Zero-Dependency Architecture**:
+   * The whole catalog lives in a single file (`musicmatch.db`).
+   * Simple atomic backup (a direct file copy or the `VACUUM INTO` command).
+   * Distribution to the end user without managing Windows background services.
+3. **Simple Batch Writes from Rust**:
+   * The `rusqlite` crate lets Rust threads open direct transactions with low memory use.
 
-#### Gargalos em 1.000.000 de Faixas
-1. **Ausência de Paralelismo de Query (Gargalo Single-Core)**:
-   * Uma consulta que calcula fórmulas matemáticas ponderadas de similaridade (BPM harmônico + proximidade de ano com decadência exponencial + distâncias de gênero) sobre dezenas de milhares de candidatos é executada em **uma única thread de CPU**. Em CPUs modernas de 8 a 16 núcleos, o SQLite deixa 85-95% do hardware ocioso, resultando em latências de 300ms a 1.200ms.
-2. **Concorrência de Escrita (Single-Writer no WAL)**:
-   * O modo WAL (*Write-Ahead Logging*) permite múltiplos leitores simultâneos, mas **apenas um único escritor por vez**.
-   * Se o Scanner em Rust estiver executando a indexação inicial ou atualização de LUFS/BPM em segundo plano, tentativas do Agente Antigravity ou da UI de persistir preferências ou tags resultarão em contenção de locks (`SQLITE_BUSY`).
-3. **Limitações do Ecossistema Vetorial (`sqlite-vec`)**:
-   * Embora o `sqlite-vec` seja promissor, ele ainda carece de quantização de vetores madura, algoritmos HNSW em disco altamente particionados e suporte a *Iterative Index Scanning* com filtragem relacional combinada para 1M de registros. Manter 1M de vetores em RAM no SQLite compromete a leveza do app desktop.
-
----
-
-### 3.2. PostgreSQL: Pontos Fortes e Trade-Offs
-
-#### Vantagens
-1. **Paralelismo Real de Consultas (`Parallel Query Execution`)**:
-   * O planejador de consultas do Postgres divide varreduras e cálculos de similaridade em múltiplos *parallel worker threads*. Cálculos intensivos de distâncias numéricas e funções analíticas sobre 1M de linhas são executados em 30ms a 80ms.
-2. **Maturidade Vetorial com `pgvector`**:
-   * Suporte nativo a índices **HNSW** e **IVFFlat**.
-   * Suporte a tipos **`halfvec`** (16 bits) e quantização binária, cortando o uso de RAM pela metade.
-   * Suporte a **Iterative Index Search**: permite que filtros rígidos (`WHERE bpm BETWEEN 120 AND 130 AND year >= 1990`) sejam avaliados de forma coordenada com a travessia do grafo HNSW, evitando o problema clássico de nós vetoriais esgotados.
-3. **MVCC Completo e Locks em Nível de Linha**:
-   * Leituras e escritas não se bloqueiam mutuamente. O Scanner em Rust pode ingerir faixas continuamente enquanto o Agente consulta metadados e calcula recomendações sem contenção.
-4. **Busca Textual Difusa Avançada (`pg_trgm`)**:
-   * Correspondência de artistas e títulos por similaridade de trigramas com índices GIN, lidando com erros de digitação de forma superior ao FTS tradicional.
-5. **Ferramental Tradicional de Nível Industrial**:
-   * DBeaver, DataGrip e pgAdmin fornecem visualização gráfica completa de planos de execução (`EXPLAIN (ANALYZE, BUFFERS)`), identificando com precisão consumo de I/O em disco vs cache de memória.
-   * Extensões como `pg_stat_statements` permitem identificar gargalos de queries geradas pelo LLM em tempo real.
-
-#### Desvantagens / Trade-Offs
-1. **Requisito de Serviço / Daemon**:
-   * Exige a execução de um processo servidor PostgreSQL (serviço do Windows ou container Docker).
-   * Para um app desktop, adiciona complexidade de empacotamento, alocação de portas de rede (5432) e permissões no firewall.
-2. **Latência de IPC / Loopback TCP**:
-   * Adiciona um piso mínimo de latência de ~300µs a 800µs por requisição devido ao protocolo de rede cliente-servidor (desprezível para queries complexas, mas perceptível em loops com milhares de queries unitárias).
-3. **Consumo de Memória Basal**:
-   * O PostgreSQL com pool de buffers configurado para 1M de linhas aloca de 1 GB a 2 GB de RAM de forma persistente.
+#### Bottlenecks at 1,000,000 Tracks
+1. **No Query Parallelism (Single-Core Bottleneck)**:
+   * A query computing weighted mathematical similarity formulas (harmonic BPM + year proximity with exponential decay + genre distances) over tens of thousands of candidates runs on **a single CPU thread**. On modern 8- to 16-core CPUs, SQLite leaves 85-95% of the hardware idle, resulting in latencies of 300 ms to 1,200 ms.
+2. **Write Concurrency (Single Writer in WAL)**:
+   * WAL (*Write-Ahead Logging*) mode allows many simultaneous readers but **only one writer at a time**.
+   * If the Rust scanner is running the initial indexing or a background LUFS/BPM update, attempts by the Antigravity agent or the UI to persist preferences or tags will hit lock contention (`SQLITE_BUSY`).
+3. **Limits of the Vector Ecosystem (`sqlite-vec`)**:
+   * Although `sqlite-vec` is promising, it still lacks mature vector quantization, highly partitioned on-disk HNSW algorithms, and *Iterative Index Scanning* combined with relational filtering for 1M records. Keeping 1M vectors in RAM with SQLite undermines the lightness of the desktop app.
 
 ---
 
-## 4. Tabela de Comparação Direta
+### 3.2. PostgreSQL: Strengths and Trade-Offs
 
-| Requisito do Projeto | SQLite (com FTS5 + `sqlite-vec`) | PostgreSQL (com `pgvector` + `pg_trgm`) |
+#### Advantages
+1. **True Query Parallelism (`Parallel Query Execution`)**:
+   * The Postgres query planner splits scans and similarity calculations across multiple *parallel worker threads*. Intensive numeric distance calculations and analytic functions over 1M rows run in 30 ms to 80 ms.
+2. **Vector Maturity with `pgvector`**:
+   * Native support for **HNSW** and **IVFFlat** indexes.
+   * Support for **`halfvec`** types (16-bit) and binary quantization, halving RAM use.
+   * Support for **Iterative Index Search**: strict filters (`WHERE bpm BETWEEN 120 AND 130 AND year >= 1990`) are evaluated in coordination with the HNSW graph traversal, avoiding the classic problem of exhausted vector nodes.
+3. **Full MVCC and Row-Level Locks**:
+   * Reads and writes do not block each other. The Rust scanner can ingest tracks continuously while the agent queries metadata and computes recommendations without contention.
+4. **Advanced Fuzzy Text Search (`pg_trgm`)**:
+   * Matching artists and titles by trigram similarity with GIN indexes, handling typos better than traditional FTS.
+5. **Industrial-Grade Traditional Tooling**:
+   * DBeaver, DataGrip and pgAdmin provide full graphical views of execution plans (`EXPLAIN (ANALYZE, BUFFERS)`), pinpointing disk I/O versus memory cache usage.
+   * Extensions such as `pg_stat_statements` identify bottlenecks in LLM-generated queries in real time.
+
+#### Disadvantages / Trade-Offs
+1. **Service / Daemon Requirement**:
+   * Requires running a PostgreSQL server process (a Windows service or a Docker container).
+   * For a desktop app, this adds packaging complexity, network port allocation (5432) and firewall permissions.
+2. **IPC / Loopback TCP Latency**:
+   * Adds a minimum latency floor of ~300 µs to 800 µs per request due to the client-server network protocol (negligible for complex queries, but noticeable in loops with thousands of single queries).
+3. **Baseline Memory Use**:
+   * PostgreSQL with a buffer pool configured for 1M rows persistently allocates 1 GB to 2 GB of RAM.
+
+---
+
+## 4. Direct Comparison Table
+
+| Project Requirement | SQLite (with FTS5 + `sqlite-vec`) | PostgreSQL (with `pgvector` + `pg_trgm`) |
 | :--- | :--- | :--- |
-| **Escala Relacional (1M faixas)** | Atende bem em consultas simples indexadas (B-Tree). | Atende com folga, excelente otimizador de custos. |
-| **Similaridade Ponderada Multicritério** | Lenta em cálculos complexos (Single-Core CPU). | **Ultrarrápida** com paralelismo multi-thread. |
-| **Componente Vetorial (1M de embeddings)** | Experimental, alto risco de saturação de RAM. | **Produção industrial** (HNSW + `halfvec` + Iterative Scan). |
-| **Concorrência Ingestão vs Agente IA** | Risco de lock contention (`database is locked`). | **Concorrência total** via MVCC e lock por linha. |
-| **Fuzzy Matching (Artista/Álbum)** | Limitado a prefixos/tokens FTS5. | **Excelente** via `pg_trgm` (trigramas GIN). |
-| **Latência de Leitura Unitária** | **~10 a 30 µs** (C-ABI in-memory). | ~300 a 800 µs (Protocolo TCP loopback). |
-| **Manutenção / Ferramentas Tradicionais** | Ferramentas simples (DB Browser, SQLiteStudio). | **Líder absoluto** (DBeaver, DataGrip, EXPLAIN detalhado). |
-| **Instalação e Portabilidade Desktop** | **Perfeita**: Arquivo único local, zero-config. | Média/Alta: Exige daemon rodando ou Docker. |
+| **Relational Scale (1M tracks)** | Handles simple indexed (B-Tree) queries well. | Handles it with room to spare; excellent cost-based optimizer. |
+| **Weighted Multi-Criteria Similarity** | Slow on complex calculations (single-core CPU). | **Very fast** with multi-threaded parallelism. |
+| **Vector Component (1M embeddings)** | Experimental; high risk of RAM saturation. | **Industrial production** (HNSW + `halfvec` + Iterative Scan). |
+| **Ingestion vs AI Agent Concurrency** | Risk of lock contention (`database is locked`). | **Full concurrency** via MVCC and row-level locks. |
+| **Fuzzy Matching (Artist/Album)** | Limited to FTS5 prefixes/tokens. | **Excellent** via `pg_trgm` (GIN trigrams). |
+| **Single-Read Latency** | **~10 to 30 µs** (in-memory C-ABI). | ~300 to 800 µs (loopback TCP protocol). |
+| **Maintenance / Traditional Tooling** | Simple tools (DB Browser, SQLiteStudio). | **Clear leader** (DBeaver, DataGrip, detailed EXPLAIN). |
+| **Desktop Installation and Portability** | **Perfect**: a single local file, zero config. | Medium/High: requires a running daemon or Docker. |
 
 ---
 
-## 5. Modelagem Proposta no PostgreSQL para 1M de Faixas
+## 5. Proposed PostgreSQL Model for 1M Tracks
 
-### DDL: Esquema com Suporte Relacional, Fuzzy Text e Vetores
+### DDL: Schema with Relational, Fuzzy Text and Vector Support
 
 ```sql
--- Habilita extensões necessárias
+-- Enable the required extensions
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE EXTENSION IF NOT EXISTS "pg_trgm";
 CREATE EXTENSION IF NOT EXISTS "vector";
 
--- Tabela principal de faixas
+-- Main tracks table
 CREATE TABLE tracks (
     id VARCHAR(64) PRIMARY KEY,
     title VARCHAR(255) NOT NULL,
@@ -166,31 +166,31 @@ CREATE TABLE tracks (
     genre VARCHAR(100) NOT NULL,
     year SMALLINT,
     bpm REAL NOT NULL CHECK(bpm > 0),
-    composition_type VARCHAR(50), -- Ex: 'Instrumental', 'Vocal', 'Remix', 'Acoustic'
-    meter VARCHAR(10) DEFAULT '4/4', -- Ex: '4/4', '3/4', '6/8'
-    musical_key VARCHAR(10),        -- Ex: '8A', '11B' (Camelot Wheel)
+    composition_type VARCHAR(50), -- e.g. 'Instrumental', 'Vocal', 'Remix', 'Acoustic'
+    meter VARCHAR(10) DEFAULT '4/4', -- e.g. '4/4', '3/4', '6/8'
+    musical_key VARCHAR(10),        -- e.g. '8A', '11B' (Camelot Wheel)
     duration_seconds REAL NOT NULL CHECK(duration_seconds >= 0),
     bitrate_kbps INTEGER NOT NULL,
     file_path TEXT UNIQUE NOT NULL,
     mood VARCHAR(100),
     lufs REAL,
-    -- Vetor denso de 768 dimensões em meia precisão (Float16) para economizar RAM
+    -- Dense 768-dimension vector in half precision (Float16) to save RAM
     embedding halfvec(768),
     created_at TIMESTAMPTZ DEFAULT clock_timestamp(),
     updated_at TIMESTAMPTZ DEFAULT clock_timestamp()
 );
 
--- Índices B-Tree para filtros numéricos e de janela
+-- B-Tree indexes for numeric and window filters
 CREATE INDEX idx_tracks_bpm ON tracks(bpm);
 CREATE INDEX idx_tracks_year ON tracks(year);
 CREATE INDEX idx_tracks_key ON tracks(musical_key);
 CREATE INDEX idx_tracks_comp_type ON tracks(composition_type);
 
--- Índices GIN de Trigramas para busca difusa em Artista e Gênero
+-- Trigram GIN indexes for fuzzy search on Artist and Genre
 CREATE INDEX idx_tracks_artist_trgm ON tracks USING gin (artist gin_trgm_ops);
 CREATE INDEX idx_tracks_genre_trgm ON tracks USING gin (genre gin_trgm_ops);
 
--- Índice Vetorial HNSW (similaridade por Cosseno)
+-- HNSW vector index (cosine similarity)
 CREATE INDEX idx_tracks_embedding_hnsw 
 ON tracks USING hnsw (embedding halfvec_cosine_ops)
 WITH (m = 16, ef_construction = 64);
@@ -198,42 +198,42 @@ WITH (m = 16, ef_construction = 64);
 
 ---
 
-### Exemplo de Query Híbrida de Recomendação / Similaridade
+### Example Hybrid Recommendation / Similarity Query
 
-A consulta abaixo demonstra como o PostgreSQL resolve em uma única passagem:
-1. **Pré-filtragem B-Tree**: Reduz o espaço amostral para faixas viáveis.
-2. **Score de BPM Harmônico**: Bonifica tempo real ou variações de meio tempo (*half-time*) e dobro (*double-time*).
-3. **Decaimento de Ano**: Função de Gauss para proximidade temporal.
-4. **Similaridade de Gênero / Artista**: Trigramas difusos.
-5. **Similaridade Vetorial Semântica**: Distância de cosseno gerada pelo LLM.
-6. **Peso Mínimo para o Título**: Conforme requisito, o título não distorce o ranking musical.
+The query below shows how PostgreSQL resolves, in a single pass:
+1. **B-Tree Pre-Filtering**: Narrows the sample space to viable tracks.
+2. **Harmonic BPM Score**: Rewards the actual tempo or its half-time and double-time variations.
+3. **Year Decay**: A Gaussian function for time proximity.
+4. **Genre / Artist Similarity**: Fuzzy trigrams.
+5. **Semantic Vector Similarity**: Cosine distance generated by the LLM.
+6. **Minimal Weight for the Title**: As required, the title does not distort the musical ranking.
 
 ```sql
 WITH candidates AS (
     SELECT 
         id, title, artist, album, genre, year, bpm, musical_key,
-        -- Similaridade harmônica de BPM
+        -- Harmonic BPM similarity
         CASE 
             WHEN abs(bpm - :target_bpm) <= 4 THEN 1.0
             WHEN abs(bpm - (:target_bpm * 0.5)) <= 3 THEN 0.8
             WHEN abs(bpm - (:target_bpm * 2.0)) <= 6 THEN 0.8
             ELSE 0.2
         END AS bpm_score,
-        -- Decaimento Gaussiano de Ano (tolerância centrada no ano-alvo)
+        -- Gaussian year decay (tolerance centered on the target year)
         exp(-power(coalesce(year, :target_year) - :target_year, 2) / 20.0) AS year_score,
-        -- Similaridade de Gênero via Trigramas
+        -- Genre similarity via trigrams
         similarity(genre, :target_genre) AS genre_score,
-        -- Similaridade Vetorial de Vibe/Semântica acionada pelo LLM
+        -- LLM-driven vibe/semantic vector similarity
         (1 - (embedding <=> :target_vector::halfvec)) AS semantic_score
     FROM tracks
     WHERE 
-        -- Filtros rápidos via índices tradicionais
+        -- Fast filters via traditional indexes
         bpm BETWEEN (:target_bpm * 0.45) AND (:target_bpm * 2.1)
         AND year BETWEEN (:target_year - 15) AND (:target_year + 15)
 )
 SELECT 
     id, title, artist, album, genre, year, bpm, musical_key,
-    -- Ranking Ponderado Final (Título ignorado no score)
+    -- Final weighted ranking (title ignored in the score)
     (
         0.35 * semantic_score +
         0.25 * bpm_score +
@@ -247,34 +247,34 @@ LIMIT 50;
 
 ---
 
-## 6. Conclusão e Recomendação Estratégica
+## 6. Conclusion and Strategic Recommendation
 
-### Decisão Técnica: **Migrar para PostgreSQL com `pgvector` na Fase de Alta Escala**
+### Technical Decision: **Migrate to PostgreSQL with `pgvector` in the High-Scale Phase**
 
-1. **Adequação ao Patamar de 1 Milhão de Faixas**:
-   * O SQLite atende com perfeição até 100.000 faixas. Porém, ao atingir **1.000.000 de faixas com vetores densos de 768 dimensões e consultas multicritério ponderadas**, a falta de paralelismo de CPU e a imaturidade de índices vetoriais em larga escala no SQLite degradam a experiência do usuário.
-2. **Suporte Vetorial de Primeira Linha**:
-   * O `pgvector` com `halfvec` e HNSW permite manter 1M de vetores indexados em ~1,5 GB a 2 GB de RAM com respostas sub-40ms.
-3. **Isolamento de Concorrência**:
-   * O scanner multi-thread em Rust (`Rayon`) e o agente de IA (`Google Antigravity SDK`) podem ler e escrever simultaneamente sem locks de arquivo.
-4. **Ferramental de Nível Enterprise**:
-   * Facilidade total de inspeção e tuning de planos de execução via DBeaver / DataGrip.
+1. **Fit for the 1 Million Track Level**:
+   * SQLite works perfectly up to 100,000 tracks. However, at **1,000,000 tracks with dense 768-dimension vectors and weighted multi-criteria queries**, SQLite's lack of CPU parallelism and the immaturity of its large-scale vector indexes degrade the user experience.
+2. **First-Class Vector Support**:
+   * `pgvector` with `halfvec` and HNSW keeps 1M vectors indexed in ~1.5 GB to 2 GB of RAM with sub-40 ms responses.
+3. **Concurrency Isolation**:
+   * The multi-threaded Rust scanner (`Rayon`) and the AI agent (`Google Antigravity SDK`) can read and write simultaneously without file locks.
+4. **Enterprise-Grade Tooling**:
+   * Full ease of inspecting and tuning execution plans via DBeaver / DataGrip.
 
 ---
 
-## 7. Roteiro Prático de Migração (Migration Roadmap)
+## 7. Practical Migration Roadmap
 
-Para garantir que a transição ocorra de forma fluida e sem retrabalho quando o projeto atingir o estágio avançado:
+To make the transition smooth and avoid rework when the project reaches the advanced stage:
 
-### Fase 1: Preservar a Camada de Abstração Atual (Hoje)
-* O MusicMatch já utiliza o padrão **Repository Pattern** (`SQLiteTrackRepository`) e modelos validados por **Pydantic V2** (`Track`).
-* **Ação**: Manter o desenvolvimento das ferramentas do agente (`tools/search.py`, `tools/scanner.py`) e serviços (`LibraryService`) desacoplados de SQL bruto.
+### Phase 1: Preserve the Current Abstraction Layer (Today)
+* MusicMatch already uses the **Repository Pattern** (`SQLiteTrackRepository`) and models validated by **Pydantic V2** (`Track`).
+* **Action**: Keep the agent tools (`tools/search.py`, `tools/scanner.py`) and services (`LibraryService`) decoupled from raw SQL.
 
-### Fase 2: Implementação do `PostgresTrackRepository` (Fase Futura)
-* Criar a classe `PostgresTrackRepository` implementando a mesma interface pública de métodos (`insert_track`, `insert_batch`, `search_combined`, `get_stats`).
-* No Python, utilizar drivers assíncronos de alta performance (`asyncpg` ou `psycopg3`).
-* No Rust (`musicmatch_core`), utilizar a crate `tokio-postgres` com operações binárias `COPY` para garantir ingestão superior a 30.000 faixas/segundo.
+### Phase 2: Implement `PostgresTrackRepository` (Future Phase)
+* Create a `PostgresTrackRepository` class implementing the same public method interface (`insert_track`, `insert_batch`, `search_combined`, `get_stats`).
+* In Python, use high-performance asynchronous drivers (`asyncpg` or `psycopg3`).
+* In Rust (`musicmatch_core`), use the `tokio-postgres` crate with binary `COPY` operations to ensure ingestion above 30,000 tracks/second.
 
-### Fase 3: Ambiente e Execução
-* Configurar um manifesto `docker-compose.yml` local com imagem oficial `pgvector/pgvector:pg16`.
-* Adicionar flag de configuração no `.env` (`DATABASE_BACKEND=sqlite` ou `DATABASE_BACKEND=postgres`), permitindo alternar de forma transparente entre o SQLite local e o cluster PostgreSQL.
+### Phase 3: Environment and Execution
+* Set up a local `docker-compose.yml` manifest with the official `pgvector/pgvector:pg16` image.
+* Add a configuration flag to `.env` (`DATABASE_BACKEND=sqlite` or `DATABASE_BACKEND=postgres`), allowing transparent switching between the local SQLite and the PostgreSQL cluster.
