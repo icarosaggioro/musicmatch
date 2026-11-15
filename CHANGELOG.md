@@ -8,6 +8,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ---
 
 ## [Unreleased]
+### Added
+- Roadmap shows the delivery status of each feature front, linked to its tracking issues.
+- Test guard (`tests/test_docs_links.py`) that fails when project docs link to machine-local `file:` paths or to repository files that do not exist.
+
+### Changed
+- Roadmap translated to English and renamed from `docs/ROADMAP_PROXIMAS_FUNCIONALIDADES.md` to `docs/ROADMAP.md`.
+- README no longer hard-codes test counts or a coverage table that went stale; it lists ADRs 0010 to 0013, the roadmap and the changelog, and explains that coverage reports need `pytest-cov`, which is not in the `dev` extras.
+- Machine-local `file:///c:/...` links in the docs replaced with relative repository links, or with links to the public yt-dlp repository; local clone paths in ADR 0010 replaced with a placeholder.
+
+### Fixed
+- `scripts/check.py` no longer prints a hard-coded "197 tests" in its success summary.
 
 ---
 

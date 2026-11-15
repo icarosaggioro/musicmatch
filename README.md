@@ -5,7 +5,6 @@
 
 [![Python 3.14+](https://img.shields.io/badge/python-3.14%2B-blue.svg)](https://www.python.org/downloads/)
 [![CI](https://github.com/icarosaggioro/musicmatch/actions/workflows/ci.yml/badge.svg)](https://github.com/icarosaggioro/musicmatch/actions/workflows/ci.yml)
-[![Tests](https://img.shields.io/badge/tests-197%20passed-brightgreen.svg)]()
 [![Architecture](https://img.shields.io/badge/architecture-Harness%20%7C%20Pydantic%20V2-orange.svg)]()
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
@@ -61,7 +60,7 @@ The project follows a didactic, incremental **Walking Skeleton** strategy: estab
 - **Persistence & Search Engine**: Embedded SQLite with **FTS5** (*Full-Text Search*) inverted index, external content synchronization triggers, and BM25 relevance scoring
 - **Business Service Layer**: `LibraryService` & `AudioScanner` encapsulating idempotent scanning, stat-cache, and hybrid search
 - **Harness & Interface**: Decoupled Event Loop with Command Pattern and `ConsoleUI` renderer
-- **Testing & Quality Assurance**: `pytest`, `pytest-asyncio`, `pytest-cov`, `coverage` (**98% code coverage**, 87 tests)
+- **Testing & Quality Assurance**: `pytest` and `pytest-asyncio`, run by `scripts/check.py` locally and in CI
 - **Native High-Performance DSP Engine (Roadmap)**: Rust compiled via `PyO3` e `Maturin`
 
 ---
@@ -152,43 +151,21 @@ Any user input that does not start with `/` is automatically routed to the AI Ag
 
 ## 🧪 Automated Testing & Coverage
 
-The project includes **73 automated unit tests** covering the agent ReAct loop with deterministic mocks (zero API token cost), Pydantic runtime validations, harness routing, interactive `/list` pagination with cancellation, SQLite FTS5 triggers and search ranking, library service use cases, and UI rendering:
+The automated test suite covers the agent ReAct loop with deterministic mocks (zero API token cost), Pydantic runtime validations, harness routing, interactive `/list` pagination with cancellation, SQLite FTS5 triggers and search ranking, library services, web ingestion and promotion, library maintenance safeguards, and UI rendering. Current results are shown by the CI badge above.
 
-```powershell
-# Run all tests
+```bash
+# Run every quality gate (syntax, dependency health, test suite), exactly as CI does
+python scripts/check.py
+
+# Run only the tests
 pytest
-
-# Run tests with detailed line-by-line coverage report
-pytest --cov=musicmatch --cov-report=term-missing
 ```
 
-### Current Coverage Report: **98%**
-```text
-Name                                    Stmts   Miss  Cover
------------------------------------------------------------
-src\musicmatch\__init__.py                  1      0   100%
-src\musicmatch\agent\core.py               49      4    92%
-src\musicmatch\cli.py                      10      1    90%
-src\musicmatch\commands\__init__.py         3      0   100%
-src\musicmatch\commands\base.py            13      1    92%
-src\musicmatch\commands\registry.py       150      1    99%
-src\musicmatch\config.py                   11      0   100%
-src\musicmatch\domain\models.py            24      0   100%
-src\musicmatch\harness\__init__.py          2      0   100%
-src\musicmatch\harness\loop.py             37      0   100%
-src\musicmatch\services\__init__.py         2      0   100%
-src\musicmatch\services\library.py         37      1    97%
-src\musicmatch\storage\__init__.py          3      0   100%
-src\musicmatch\storage\mock_db.py          23      0   100%
-src\musicmatch\storage\schema.py            6      0   100%
-src\musicmatch\storage\sqlite_repo.py     139      5    96%
-src\musicmatch\tools\__init__.py            3      0   100%
-src\musicmatch\tools\scanner.py             6      0   100%
-src\musicmatch\tools\search.py              6      0   100%
-src\musicmatch\ui\__init__.py               2      0   100%
-src\musicmatch\ui\renderer.py              66      0   100%
------------------------------------------------------------
-TOTAL                                     593     13    98%
+For a line-by-line coverage report, install `pytest-cov` (not part of the `dev` extras) and run:
+
+```bash
+pip install pytest-cov
+pytest --cov=musicmatch --cov-report=term-missing
 ```
 
 ---
@@ -199,6 +176,8 @@ All architectural decisions and research references are persisted and versioned 
 - [CONTEXT.md](CONTEXT.md): Ubiquitous Language dictionary defining strict domain terminology and terms to avoid.
 - [PROJECT_CONTEXT.md](PROJECT_CONTEXT.md): System guidelines, engineering personas, and architectural roadmap.
 - [docs/RESEARCH_INDEX.md](docs/RESEARCH_INDEX.md): Research map covering MPEG-1/2 Layer III specs, disk I/O strategies, SQLite FTS5/vector indexing, and agent framework comparisons.
+- [docs/ROADMAP.md](docs/ROADMAP.md): Functional roadmap with the status of each feature front and links to its issues.
+- [CHANGELOG.md](CHANGELOG.md): Release history.
 - [docs/DATABASE_SCALING_SQLITE_VS_POSTGRESQL.md](docs/DATABASE_SCALING_SQLITE_VS_POSTGRESQL.md): Comparative benchmark and scaling architecture for 1M+ audio tracks (SQLite vs. PostgreSQL + pgvector).
 - **Architecture Decision Records (ADRs)**:
   - [ADR 0001](docs/adr/0001-top-down-walking-skeleton-with-stubs.md): Top-Down Development via Walking Skeleton and Typed Tool Contracts.
@@ -210,6 +189,10 @@ All architectural decisions and research references are persisted and versioned 
   - [ADR 0007](docs/adr/0007-sqlite-persistence-with-fts5-and-service-layer.md): SQLite Persistence with FTS5 and Domain Service Layer.
   - [ADR 0008](docs/adr/0008-database-scaling-and-postgresql-migration-roadmap.md): Database Scaling Strategy and PostgreSQL Migration Roadmap.
   - [ADR 0009](docs/adr/0009-library-idempotency-stat-cache-and-lifecycle-policy.md): Library Idempotency, Track Identity via Full SHA-256 Path Hash, Stat-Cache, and Non-Destructive Lifecycle Policy.
+  - [ADR 0010](docs/adr/0010-yt-dlp-integration-and-packaging-strategy.md): yt-dlp Integration, Dependency Management, and CI/CD Packaging Strategy.
+  - [ADR 0011](docs/adr/0011-web-ingestion-two-stage-staging-and-managed-library-taxonomy.md): Web Ingestion Pipeline, Two-Stage Staging Architecture, and Managed Library Taxonomy.
+  - [ADR 0012](docs/adr/0012-managed-library-governance-resolution-and-safeguards.md): Managed Library Location Governance, Cross-Platform Resolution, and Write-Access Safeguards.
+  - [ADR 0013](docs/adr/0013-library-maintenance-consolidation-and-deletion-safeguards.md): Library Maintenance, Consolidation Imports, and Two-Tier Deletion Safeguards.
 
 ---
 

@@ -125,7 +125,7 @@ Este documento serve como mapa de referência rápida para todos os tópicos con
 ---
 
 ## 10. Roadmap de Evolução Funcional e Próximas Funcionalidades Reais
-* **Documento Completo de Especificação**: [`docs/ROADMAP_PROXIMAS_FUNCIONALIDADES.md`](ROADMAP_PROXIMAS_FUNCIONALIDADES.md).
+* **Documento Completo de Especificação**: [`docs/ROADMAP.md`](ROADMAP.md).
 * **Decisão Arquitetural de Integração**: [ADR 0010 - Estratégia de Integração do yt-dlp, Gestão de Dependências e Empacotamento de CI/CD](adr/0010-yt-dlp-integration-and-packaging-strategy.md).
 * **Decisão Arquitetural da Frente 1**: [ADR 0011 - Web Ingestion Pipeline, Two-Stage Staging Architecture, and Managed Library Taxonomy](adr/0011-web-ingestion-two-stage-staging-and-managed-library-taxonomy.md).
 * **Decisão de Governança da Biblioteca**: [ADR 0012 - Managed Library Location Governance, Cross-Platform Resolution, and Write-Access Safeguards](adr/0012-managed-library-governance-resolution-and-safeguards.md).
