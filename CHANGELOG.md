@@ -8,33 +8,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ---
 
 ## [Unreleased]
-### Added
-- Adoption and calibration of the SDLC framework (`.agents/` rules, guides, and skills).
-- Project-specific configuration in `.agents/rules/project.md` (solo profile, scopes, safety rules, docs map).
-- Cross-platform check pipeline script (`scripts/check.py`) for syntax verification, dependency health, and test suite.
-- GitHub Actions CI workflow (`.github/workflows/ci.yml`) enforcing automated quality gates on push and pull requests.
-- Scoped AI Code Review rules (`.github/ocr-rules.json`) excluding lockfiles and test media.
-- Library governance and maintenance suite (Front 5 - ADR 0013 & ADR 0009): `/audit`, `/delete`, `/prune`, `/retag`, `/unindex`, and unified `/library`.
-- Test guard (`tests/test_project_metadata.py`) that fails when the supported Python version drifts between `project.md`, `pyproject.toml` and CI, or when egg-info is tracked.
-
-### Changed
-- Minimum supported Python is now 3.14.6, stated identically in `.agents/rules/project.md`, `pyproject.toml` (`requires-python`) and `uv.lock`; CI runs on Python 3.14 (was 3.12).
-- `pytest-asyncio` fixture loop scope set explicitly to `function`, removing its deprecation warning.
-- AI code review workflow reads the model from the `CI_OCR_LLM_MODEL` repository variable (was `OCR_LLM_MODEL`, which was never set, so the review exited before reviewing).
-
-### Removed
-- `src/musicmatch.egg-info/` build artifacts from version control; `*.egg-info/`, `build/` and `dist/` are now ignored.
 
 ---
 
-## [0.2.0] - In Development
-### Adicionado
-- Integração das bibliotecas `mediafile` e `pyacoustid` para leitura real de tags de áudio e fingerprint acústico.
-- Motor de varredura real (`Scanner`) com suporte a múltiplos formatos (.mp3, .flac, .m4a, .aac, .ogg, .wav, .wma, .aiff, .opus).
-- Implementação de idempotência estrita e **Stat-Cache** via `file_mtime` e `file_size` conforme **ADR 0009** ($O(1)$ para re-scans inalterados).
-- Hash determinístico de caminho canônico SHA-256 para `Track.id`.
-- Política de ciclo de vida não-destrutivo com soft-delete (`status = 'AVAILABLE' | 'MISSING'`).
-- Novo comando `/scan` com métricas detalhadas de varredura e persistência.
+## [0.2.0] - 2026-11-15
+### Added
+- Real audio ingestion: `/scan` reads tags with `mediafile` across MP3, FLAC, M4A, AAC, OGG, WAV, WMA, AIFF and Opus, and reports scan and persistence metrics.
+- Idempotent re-scans (ADR 0009): stat-cache on file modification time and size skips unchanged files; track IDs are a deterministic SHA-256 of the canonical path.
+- Non-destructive track lifecycle: files that disappear are marked `MISSING` instead of being deleted from the catalog.
+- Web ingestion with `yt-dlp` (ADR 0010, ADR 0011): `/download <url|search> [--format mp3]` downloads into a session-based staging area, with SSRF, live-stream and duration safeguards.
+- Staging and promotion: `/staging [list | show | promote | discard]` and `/promote <session_id> [--all | --track <id>]` move tracks into the managed library taxonomy (`Artists/<Artist>/<Album>`, `Artists/<Artist>/Singles`, `Various Artists/<Album>`, `Collections/<Name>`).
+- Managed library location governance (ADR 0012): cross-platform default under `~/Music/MusicMatch/`, write-access probe, and refusal of system-critical paths.
+- `/model [name]` shows or changes the active LLM.
+- Library maintenance suite (Front 5, ADR 0013): `/audit [duplicates | prune]`, `/delete` (moves files to the OS Recycle Bin via `send2trash`), `/prune`, `/retag`, `/unindex`, and `/library [status | set-path | import | reorganize | clear]`, with confirmation and count-verification gates for batch operations.
+- SDLC framework adopted (`.agents/` rules, guides and skills), with project rules in `.agents/rules/project.md`.
+- Quality gates: `scripts/check.py` runs the same checks locally and in GitHub Actions CI on every push and pull request.
+- Advisory AI code review on pull requests, scoped by `.github/ocr-rules.json`.
+- Test guards that fail when the supported Python version drifts between `project.md`, `pyproject.toml` and CI, when egg-info is tracked, or when the package version disagrees with `pyproject.toml`.
+
+### Changed
+- Slash commands refactored into a modular command pattern with a single lookup registry.
+- Minimum supported Python is now 3.14.6 (was 3.11 in packaging metadata); CI runs on Python 3.14.
+- `musicmatch.__version__` is read from the installed package metadata, so `pyproject.toml` is the single source of the version.
+- AI code review reads its model from the `CI_OCR_LLM_MODEL` repository variable.
+
+### Fixed
+- `/download` no longer aborts a single-track download with a false "maximum number of downloads reached" error (#4).
+
+### Removed
+- `src/musicmatch.egg-info/` build artifacts from version control; `*.egg-info/`, `build/` and `dist/` are ignored.
 
 ---
 
@@ -52,3 +54,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Suíte de testes automatizados com `pytest` (73 testes unitários e de integração, 98% de cobertura).
 - **Documentação Arquitetural**:
   - ADRs 0001 a 0009 documentando todas as decisões fundamentais do sistema.
+
+[Unreleased]: https://github.com/icarosaggioro/musicmatch/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/icarosaggioro/musicmatch/compare/v0.1.0...v0.2.0
+[0.1.0]: https://github.com/icarosaggioro/musicmatch/releases/tag/v0.1.0
