@@ -60,3 +60,10 @@ def test_egg_info_is_not_tracked() -> None:
         check=True,
     ).stdout.strip()
     assert tracked == "", f"egg-info build artifacts are tracked by git:\n{tracked}"
+
+
+def test_package_version_matches_pyproject() -> None:
+    import musicmatch
+
+    pyproject = tomllib.loads((ROOT_DIR / "pyproject.toml").read_text(encoding="utf-8"))
+    assert musicmatch.__version__ == pyproject["project"]["version"]
