@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - Minimum supported Python is now 3.14.6, stated identically in `.agents/rules/project.md`, `pyproject.toml` (`requires-python`) and `uv.lock`; CI runs on Python 3.14 (was 3.12).
 - `pytest-asyncio` fixture loop scope set explicitly to `function`, removing its deprecation warning.
+- AI code review workflow reads the model from the `CI_OCR_LLM_MODEL` repository variable (was `OCR_LLM_MODEL`, which was never set, so the review exited before reviewing).
 
 ### Removed
 - `src/musicmatch.egg-info/` build artifacts from version control; `*.egg-info/`, `build/` and `dist/` are now ignored.
