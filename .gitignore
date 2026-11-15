@@ -16,6 +16,11 @@ __pycache__/
 .coverage
 htmlcov/
 
+# Build artifacts
+*.egg-info/
+build/
+dist/
+
 # Rust / Compilação Nativa
 target/
 *.pyd
