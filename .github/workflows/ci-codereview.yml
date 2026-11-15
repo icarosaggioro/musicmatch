@@ -1,7 +1,7 @@
 name: ci-codereview
 
 # Advisory AI code review. Never a merge gate.
-# Needs: secret CI_OPENROUTER_API_KEY and variable OCR_LLM_MODEL (no fallback on purpose).
+# Needs: secret CI_OPENROUTER_API_KEY and variable CI_OCR_LLM_MODEL (no fallback on purpose).
 # Optional: add .github/ocr-rules.json and uncomment the `rule` input to scope review by path.
 
 on:
@@ -38,7 +38,7 @@ jobs:
         with:
           llm_url: 'https://openrouter.ai/api/v1'
           llm_auth_token: ${{ secrets.CI_OPENROUTER_API_KEY }}
-          llm_model: ${{ vars.OCR_LLM_MODEL }}
+          llm_model: ${{ vars.CI_OCR_LLM_MODEL }}
           llm_protocol: 'openai'
           language: 'English'
           sticky_summary: 'true'

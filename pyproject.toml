@@ -17,7 +17,7 @@ version = "0.2.0"
 description = "AI-Native local music management, curation, and DSP playback system for large-scale audio libraries."
 readme = "README.md"
 license = { text = "MIT" }
-requires-python = ">=3.11"
+requires-python = ">=3.14.6"
 authors = [
     { name = "Icaro Saggioro", email = "icaro.saggioro@gmail.com" }
 ]
@@ -48,3 +48,7 @@ musicmatch = "musicmatch.cli:main"
 [tool.setuptools.packages.find]
 # Instrução para localizar automaticamente todos os subpacotes dentro do diretório 'src'
 where = ["src"]
+
+[tool.pytest.ini_options]
+# Explicit loop scope for async fixtures (silences the pytest-asyncio deprecation warning).
+asyncio_default_fixture_loop_scope = "function"

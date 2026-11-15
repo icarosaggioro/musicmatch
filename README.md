@@ -54,7 +54,7 @@ The project follows a didactic, incremental **Walking Skeleton** strategy: estab
 
 ## 🛠️ Technology Stack
 
-- **Language & Runtime**: Python 3.14.6 (compatible with Python 3.11+)
+- **Language & Runtime**: Python 3.14.6 or higher
 - **Audio Metadata & Ingestion**: `mediafile` (unified tag parsing across MP3, FLAC, M4A, OGG, WAV) and `pyacoustid` (Chromaprint acoustic fingerprinting)
 - **AI SDK**: `google-genai` (Gemini 3.6 Flash with Function Calling and Structured Outputs)
 - **Domain Modeling & Contracts**: `pydantic` V2 (strict runtime data integrity and automatic JSON Schema generation)
@@ -69,7 +69,7 @@ The project follows a didactic, incremental **Walking Skeleton** strategy: estab
 ## 🚀 Getting Started
 
 ### Prerequisites
-- **Python 3.11 or higher** installed.
+- **Python 3.14.6 or higher** installed.
 - A **Google AI Studio** Gemini API Key — obtain for free at [aistudio.google.com](https://aistudio.google.com/).
 
 ### 1. Clone the Repository
