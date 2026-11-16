@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - Roadmap translated to English and renamed from `docs/ROADMAP_PROXIMAS_FUNCIONALIDADES.md` to `docs/ROADMAP.md`.
+- Remaining Portuguese docs translated to English: `PROJECT_CONTEXT.md`, `docs/RESEARCH_INDEX.md`, `docs/DATABASE_SCALING_SQLITE_VS_POSTGRESQL.md`, ADR 0010, the `[0.1.0]` changelog section and the comments in `pyproject.toml`. The yt-dlp reports were translated and renamed to `docs/YT-DLP_TECHNICAL_REPORT.md` (with its `.json` summary) and `docs/YT-DLP_TECHNICAL_AND_SECURITY_REPORT.md`.
 - README no longer hard-codes test counts or a coverage table that went stale; it lists ADRs 0010 to 0013, the roadmap and the changelog, and explains that coverage reports need `pytest-cov`, which is not in the `dev` extras.
 - Machine-local `file:///c:/...` links in the docs replaced with relative repository links, or with links to the public yt-dlp repository; local clone paths in ADR 0010 replaced with a placeholder.
 
@@ -52,19 +53,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ---
 
 ## [0.1.0] - 2026-09-06
-### Adicionado
-- **Arquitetura Base (Walking Skeleton)**:
-  - Sistema de orquestração em Python 3.14 com separação de responsabilidades (Clean Architecture / DDD).
-  - Padrão **Command** no Harness interativo desacoplado da interface gráfica (`ConsoleUI`).
-  - Despachante de comandos (`CommandRegistry`) com suporte a slash commands: `/help`, `/status`, `/scan`, `/search`, `/list`, `/clear`, `/exit`.
-  - Persistência em **SQLite com FTS5** (*Full-Text Search*) e tabela de conteúdo externo sincronizada por gatilhos nativos (`AFTER INSERT`, `AFTER UPDATE`, `AFTER DELETE`).
-  - Busca híbrida ranqueada por relevância Okapi BM25 combinada a filtros relacionais (BPM, gênero).
-  - Contratos de domínio fortemente tipados com **Pydantic V2** (`Track`, `ScanResult`).
-  - Camada de serviços de negócio (`LibraryService`) desacoplando o banco de dados das interfaces.
-  - Orquestração de agentes com o **Google Antigravity SDK** e integração com modelos **Gemini 3.6 Flash** via `google-genai`.
-  - Suíte de testes automatizados com `pytest` (73 testes unitários e de integração, 98% de cobertura).
-- **Documentação Arquitetural**:
-  - ADRs 0001 a 0009 documentando todas as decisões fundamentais do sistema.
+### Added
+- **Base Architecture (Walking Skeleton)**:
+  - Orchestration system in Python 3.14 with separated responsibilities (Clean Architecture / DDD).
+  - **Command** pattern in the interactive harness, decoupled from the presentation layer (`ConsoleUI`).
+  - Command dispatcher (`CommandRegistry`) supporting the slash commands `/help`, `/status`, `/scan`, `/search`, `/list`, `/clear`, `/exit`.
+  - Persistence in **SQLite with FTS5** (*Full-Text Search*) and an external-content table kept in sync by native triggers (`AFTER INSERT`, `AFTER UPDATE`, `AFTER DELETE`).
+  - Hybrid search ranked by Okapi BM25 relevance combined with relational filters (BPM, genre).
+  - Strongly typed domain contracts with **Pydantic V2** (`Track`, `ScanResult`).
+  - Business service layer (`LibraryService`) decoupling the database from the interfaces.
+  - Agent orchestration with the **Google Antigravity SDK** and integration with **Gemini 3.6 Flash** models via `google-genai`.
+  - Automated test suite with `pytest` (73 unit and integration tests, 98% coverage at the time of this release).
+- **Architecture Documentation**:
+  - ADRs 0001 to 0009 recording every foundational decision of the system.
 
 [Unreleased]: https://github.com/icarosaggioro/musicmatch/compare/v0.2.0...HEAD
 [0.2.0]: https://github.com/icarosaggioro/musicmatch/compare/v0.1.0...v0.2.0

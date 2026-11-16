@@ -1,0 +1,5 @@
+{
+  "summary": "Exhaustive software engineering technical report on the yt-dlp codebase, detailing its architecture, internal workings, orchestration of downloaders and post-processors, reusable subcomponents, dependencies and an integration guide for other projects.",
+  "updatedAt": "2026-09-13T14:37:46.671016900Z",
+  "userFacing": true
+}

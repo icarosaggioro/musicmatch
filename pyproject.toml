@@ -1,13 +1,13 @@
 # ==============================================================================
-# pyproject.toml - Configuração Central e Padrão de Build do Python (PEP 517/518/621)
+# pyproject.toml - Central Configuration and Python Build Standard (PEP 517/518/621)
 # ==============================================================================
-# Este arquivo substitui o formato legado (setup.py, setup.cfg e requirements.txt)
-# unificando metadados, dependências, scripts de execução e configuração de build.
+# This file replaces the legacy format (setup.py, setup.cfg and requirements.txt),
+# unifying metadata, dependencies, entry-point scripts and build configuration.
 
 [build-system]
-# Define a ferramenta responsável por construir e instalar o pacote.
-# setuptools é o padrão robusto para Python puro; quando integrarmos extensões Rust,
-# poderemos alternar ou complementar com 'maturin' (PEP 517).
+# Defines the tool that builds and installs the package.
+# setuptools is the robust standard for pure Python; once Rust extensions are added,
+# it can be replaced or complemented with 'maturin' (PEP 517).
 requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"
 
@@ -23,7 +23,7 @@ authors = [
 ]
 keywords = ["audio", "ai-agents", "mp3", "dsp", "music", "gemini"]
 
-# Dependências obrigatórias de execução em produção
+# Required runtime dependencies
 dependencies = [
     "google-genai>=0.1.0",
     "mediafile>=0.17.0",
@@ -35,18 +35,18 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-# Dependências opcionais para testes e qualidade de código
+# Optional dependencies for testing and code quality
 dev = [
     "pytest>=8.0.0",
     "pytest-asyncio>=0.23.0",
 ]
 
 [project.scripts]
-# Cria o comando de terminal executável global 'musicmatch'
+# Creates the global 'musicmatch' terminal command
 musicmatch = "musicmatch.cli:main"
 
 [tool.setuptools.packages.find]
-# Instrução para localizar automaticamente todos os subpacotes dentro do diretório 'src'
+# Automatically discover every subpackage inside the 'src' directory
 where = ["src"]
 
 [tool.pytest.ini_options]

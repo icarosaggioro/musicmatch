@@ -1,140 +1,139 @@
-# Índice de Tópicos e Itens Pesquisados
+# Index of Researched Topics and Items
 
-Este documento serve como mapa de referência rápida para todos os tópicos conceituais, padrões, tecnologias e componentes investigados durante a concepção do projeto.
+This document is a quick-reference map of every concept, pattern, technology and component investigated while designing the project.
 
 ---
 
-## 1. Engenharia de Áudio & Padrão MP3
+## 1. Audio Engineering & the MP3 Standard
 * **MPEG-1/2 Audio Layer III (ISO/IEC 11172-3 / 13818-3)**:
-  * Modelagem Psicoacústica (Limiar absoluto de audição, mascaramento em frequência, mascaramento temporal: *pre-masking* e *post-masking*).
-  * Banco de Filtros Híbrido (32 sub-bandas polifásicas + MDCT de janelas longas/curtas para transientes e mitigação de *pre-echo*).
-  * Modos de Canal (Stereo, Joint Stereo: Mid/Side e Intensity Stereo).
-  * Estrutura do Frame (Syncword de 11/12 bits, Bitrate, Sample Rate, Padding, cálculo de tamanho do frame).
-  * *Bit Reservoir* (Reservatório de bits, campo `main_data_begin` e impacto em cortes/seeking).
-  * Metadados e Tags (ID3v1 nos últimos 128 bytes, ID3v2.3/v2.4 com frames flexíveis e imagens APIC).
-  * Modos de Taxa de Bits (CBR, VBR com headers Xing/LAME/VBRI, ABR).
-  * Artefatos Acústicos (*pre-echo*, *swishing/birdies*, cortes abruptos de frequência em low-bitrates).
+  * Psychoacoustic modeling (absolute threshold of hearing, frequency masking, temporal masking: *pre-masking* and *post-masking*).
+  * Hybrid filter bank (32 polyphase sub-bands + MDCT with long/short windows for transients and *pre-echo* mitigation).
+  * Channel modes (Stereo, Joint Stereo: Mid/Side and Intensity Stereo).
+  * Frame structure (11/12-bit syncword, bitrate, sample rate, padding, frame size calculation).
+  * *Bit Reservoir* (the `main_data_begin` field and its impact on cutting/seeking).
+  * Metadata and tags (ID3v1 in the last 128 bytes, ID3v2.3/v2.4 with flexible frames and APIC images).
+  * Bitrate modes (CBR, VBR with Xing/LAME/VBRI headers, ABR).
+  * Acoustic artifacts (*pre-echo*, *swishing/birdies*, abrupt frequency cutoffs at low bitrates).
 
 ---
 
-## 2. Arquitetura para Grandes Bibliotecas de Áudio (10k a 100k+ Faixas)
-* **Técnicas de I/O em Disco e Escala**:
-  * *Selective / Range-based Parsing* (leitura dos primeiros KBs para ID3v2 e últimos bytes para ID3v1 sem carregar o arquivo completo).
-  * Suporte a múltiplos formatos (MP3, FLAC com `VORBIS_COMMENT`, AAC/M4A com átomos `moov/udta`).
-* **Banco de Dados & Indexação Local**:
-  * SQLite com extensão **FTS5** (*Full-Text Search*) para buscas textuais instantâneas.
-  * Busca vetorial embarcada via **`sqlite-vec` / `sqlite-vss`**.
-  * Virtualização de Lista / Interface (*Virtual Scrolling / Windowing*) para renderizar apenas itens visíveis no viewport.
-* **Métricas e Processamento de Áudio em Lote**:
-  * *Audio Fingerprinting* para deduplicação acústica (Chromaprint / AcoustID).
-  * Normalização de Loudness (EBU R128 / LUFS / ReplayGain 2.0).
-  * Cache ultraleve de *Waveforms* (vetores de picos/RMS condensados em poucos bytes por faixa).
-  * Análise Harmônica e Rítmica (Detecção de BPM, Grid de Batidas, *Camelot Wheel* / Tonalidade Musical).
-  * Detecção de *Fake Lossless / Upscaled Transcodes* (auditoria espectral de cortes em 16kHz).
+## 2. Architecture for Large Audio Libraries (10k to 100k+ Tracks)
+* **Disk I/O and Scaling Techniques**:
+  * *Selective / range-based parsing* (reading the first KBs for ID3v2 and the last bytes for ID3v1 without loading the whole file).
+  * Multiple-format support (MP3, FLAC with `VORBIS_COMMENT`, AAC/M4A with `moov/udta` atoms).
+* **Local Database & Indexing**:
+  * SQLite with the **FTS5** extension (*Full-Text Search*) for instant text search.
+  * Embedded vector search via **`sqlite-vec` / `sqlite-vss`**.
+  * List / interface virtualization (*virtual scrolling / windowing*) to render only the items visible in the viewport.
+* **Batch Audio Metrics and Processing**:
+  * *Audio fingerprinting* for acoustic deduplication (Chromaprint / AcoustID).
+  * Loudness normalization (EBU R128 / LUFS / ReplayGain 2.0).
+  * Ultra-light *waveform* cache (peak/RMS vectors condensed into a few bytes per track).
+  * Harmonic and rhythmic analysis (BPM detection, beat grid, *Camelot Wheel* / musical key).
+  * Detection of *fake lossless / upscaled transcodes* (spectral audit of cutoffs at 16 kHz).
 
 ---
 
-## 3. Orquestração de Agentes & Frameworks de IA
-* **Frameworks de Agentes Comparados**:
-  * **LangGraph**: Grafos de estado dirigidos (*State Graphs*), persistência/checkpoints (*time-travel*), controle determinístico e *human-in-the-loop*.
-  * **CrewAI**: Abordagem baseada em papéis humanos (*Crews, Agents, Tasks, Manager*).
-  * **Microsoft AutoGen (v0.4 / Magentic-One)**: Modelo de atores conversacionais para debates e tarefas abertas.
-  * **LlamaIndex Workflows**: Fluxos dirigidos por eventos (*Event-Driven*) focados em dados e RAG.
-* **Orquestradores de Filas Assíncronas de Alto Volume**:
-  * BullMQ, Inngest, Celery/Arq e Filas Nativas em SQLite com Worker Threads.
-* **Framework Selecionado**: **Google Antigravity SDK** com arquitetura de subagentes e suporte híbrido cloud/on-device.
+## 3. Agent Orchestration & AI Frameworks
+* **Agent Frameworks Compared**:
+  * **LangGraph**: Directed state graphs, persistence/checkpoints (*time travel*), deterministic control and *human-in-the-loop*.
+  * **CrewAI**: An approach based on human roles (*Crews, Agents, Tasks, Manager*).
+  * **Microsoft AutoGen (v0.4 / Magentic-One)**: A conversational actor model for debates and open-ended tasks.
+  * **LlamaIndex Workflows**: Event-driven flows focused on data and RAG.
+* **High-Volume Asynchronous Queue Orchestrators**:
+  * BullMQ, Inngest, Celery/Arq, and native SQLite queues with worker threads.
+* **Selected Framework**: **Google Antigravity SDK**, with a subagent architecture and hybrid cloud/on-device support.
 
 ---
 
-## 4. Ecossistema Google AI & Antigravity
+## 4. Google AI & Antigravity Ecosystem
 * **Google Antigravity SDK (`google-antigravity`)**:
-  * Pilares conceituais: `Agent`, `Conversation`, `Connection`.
-  * Configuração Híbrida:
-    * `LocalAgentConfig`: Conexão com modelos em nuvem (Gemini).
-    * `LiteRTAgentConfig`: Execução **100% on-device/local via GPU (CUDA/DirectX) ou NPU** com a família **Gemma 4** (sem API Key).
-    * `LocalOpenAIAgentConfig`: Conexão a servidores locais (Ollama, LM Studio).
-  * Delegação e orquestração de sub-agentes autônomos (`enable_subagents=True`, `SubagentConfig`).
-  * Integração nativa com MCP (*Model Context Protocol*).
-  * Triggers periódicos, eventos em background, hooks de ciclo de vida e políticas de segurança.
-* **API Google Gemini (Interactions API / GenAI SDK)**:
-  * Modelos de referência: `gemini-3.6-flash`, `gemini-3.1-pro-preview`.
-  * **Entrada Nativa de Áudio Multimodal**: O modelo processa arquivos de áudio brutos (.mp3, .wav) para identificar instrumentos, arranjos, timbres, transcrições e emoção na voz.
-  * Janela de contexto massiva (1M+ tokens) para análise cruzada de discografias e catálogos.
-  * Saídas estruturadas garantidas (*Structured Outputs / JSON Schema*).
-  * **Gemini Live API**: Streaming bidirecional de áudio via WebSockets para assistentes e DJs conversacionais por voz em tempo real.
+  * Conceptual pillars: `Agent`, `Conversation`, `Connection`.
+  * Hybrid configuration:
+    * `LocalAgentConfig`: Connects to cloud models (Gemini).
+    * `LiteRTAgentConfig`: Runs **100% on-device/locally on GPU (CUDA/DirectX) or NPU** with the **Gemma 4** family (no API key).
+    * `LocalOpenAIAgentConfig`: Connects to local servers (Ollama, LM Studio).
+  * Delegation to and orchestration of autonomous subagents (`enable_subagents=True`, `SubagentConfig`).
+  * Native MCP (*Model Context Protocol*) integration.
+  * Periodic triggers, background events, lifecycle hooks and security policies.
+* **Google Gemini API (Interactions API / GenAI SDK)**:
+  * Reference models: `gemini-3.6-flash`, `gemini-3.1-pro-preview`.
+  * **Native multimodal audio input**: The model processes raw audio files (.mp3, .wav) to identify instruments, arrangements, timbres, transcriptions and vocal emotion.
+  * Massive context window (1M+ tokens) for cross-analysis of discographies and catalogs.
+  * Guaranteed structured outputs (*Structured Outputs / JSON Schema*).
+  * **Gemini Live API**: Bidirectional audio streaming over WebSockets for real-time voice assistants and conversational DJs.
 
 ---
 
-## 5. Tecnologias de Interface & Execução (Desktop & Web)
-* **Conceitos de Plataforma Analisados**:
-  * **Electron**: Chromium + Node.js embutidos (muito maduro, alto uso de RAM).
-  * **Tauri (v2)**: WebView nativa do SO + Backend em Rust (ultraleve, alta performance de I/O).
-  * **WebUI / pywebview**: Abordagem minimalista usando backend local abrindo janela web nativa ou navegador.
-  * **WASM (WebAssembly)**: Código binário no navegador (`minimp3.wasm`, DSPs em *AudioWorklets*, SQLite WASM/OPFS).
-* **Status**: *Opções mapeadas; escolha final da interface gráfica a ser definida em breve.*
+## 5. Interface & Runtime Technologies (Desktop & Web)
+* **Platform Concepts Analyzed**:
+  * **Electron**: Embedded Chromium + Node.js (very mature, high RAM use).
+  * **Tauri (v2)**: The OS native WebView + a Rust backend (ultra-light, high I/O performance).
+  * **WebUI / pywebview**: A minimalist approach where a local backend opens a native web window or the browser.
+  * **WASM (WebAssembly)**: Binary code in the browser (`minimp3.wasm`, DSP in *AudioWorklets*, SQLite WASM/OPFS).
+* **Status**: *Options mapped; the final choice of graphical interface is still to be made.*
 
 ---
 
-## 6. Stack e Linguagens Confirmadas (Python 3.14.6 + Rust)
+## 6. Confirmed Stack and Languages (Python 3.14.6 + Rust)
 * **Python 3.14.6**:
-  * Orquestrador de Agentes (Google Antigravity SDK).
-  * Integração com APIs Gemini e modelos On-Device (LiteRT).
-  * Servidor de APIs e WebSockets (FastAPI).
+  * Agent orchestrator (Google Antigravity SDK).
+  * Integration with the Gemini APIs and on-device models (LiteRT).
+  * API and WebSocket server (FastAPI).
 * **Rust**:
-  * Extensão nativa compilada (`musicmatch_core`) para algoritmos de alta velocidade.
-  * Varredura multi-thread de disco com `Rayon`.
-  * Leitura e manipulação de metadados e bitstreams (`lofty`, `symphonia`).
-  * Motor numérico de DSP (BPM, LUFS, Waveform picos com SIMD).
-* **Ponte de Interoperabilidade**:
-  * **`PyO3` + `Maturin`**: Geração de binários C-ABI nativos (`.pyd`) consumidos diretamente em Python sem overhead de IPC.
+  * Compiled native extension (`musicmatch_core`) for high-speed algorithms.
+  * Multi-threaded disk scanning with `Rayon`.
+  * Reading and handling metadata and bitstreams (`lofty`, `symphonia`).
+  * Numerical DSP engine (BPM, LUFS, waveform peaks with SIMD).
+* **Interoperability Bridge**:
+  * **`PyO3` + `Maturin`**: Builds native C-ABI binaries (`.pyd`) consumed directly from Python with no IPC overhead.
 
 ---
 
-## 7. Resultados do Grill-Me (Adoção do Rust & Padrões FFI)
-* **Eliminação do Gargalo do GIL/FFI**: O Rust grava os resultados da indexação diretamente no SQLite local em lote (*batch insert*). Nenhum array volumoso de objetos trafega pela ponte Python/Rust.
-* **Comunicação por Eventos Assíncronos**: O Rust dispara eventos assíncronos (notificações/callbacks de progresso) para o Python, mantendo a thread principal e a UI 100% responsivas.
-* **Resiliência e Auditoria**: Rust isola erros de decodificação e arquivos corrompidos sem usar `panic!`, gravando relatórios de integridade para o Agente Auditor do Antigravity processar.
-* **Build & Distribuição**: Uso do `Maturin` para desenvolvimento simplificado (`maturin develop`) e geração de binários pré-compilados (.pyd) transparentes para o usuário final.
+## 7. Grill-Me Results (Rust Adoption & FFI Patterns)
+* **Removing the GIL/FFI Bottleneck**: Rust writes indexing results directly to the local SQLite database in batches (*batch insert*). No large arrays of objects cross the Python/Rust bridge.
+* **Asynchronous Event Communication**: Rust fires asynchronous events (progress notifications/callbacks) to Python, keeping the main thread and the UI 100% responsive.
+* **Resilience and Auditing**: Rust isolates decoding errors and corrupted files without using `panic!`, writing integrity reports for the Antigravity Auditor Agent to process.
+* **Build & Distribution**: `Maturin` for simplified development (`maturin develop`) and for producing pre-compiled binaries (.pyd) that are transparent to the end user.
 
 ---
 
-## 8. Persistência & Escalabilidade em Larga Escala (1.000.000+ Faixas)
-* **Estudo Comparativo Detalhado**:
-  * Documento completo em [`docs/DATABASE_SCALING_SQLITE_VS_POSTGRESQL.md`](DATABASE_SCALING_SQLITE_VS_POSTGRESQL.md).
-  * Registro de Decisão Arquitetural: [ADR 0008 - Database Scaling Strategy and PostgreSQL Migration Roadmap](adr/0008-database-scaling-and-postgresql-migration-roadmap.md).
-* **Diretrizes Consolidadas**:
-  * **Fase Atual (Desenvolvimento & Médio Porte)**: Manutenção do **SQLite com FTS5** embarcado para agilidade, testes unitários em memória (`:memory:`) e distribuição com zero infraestrutura.
-  * **Fase Avançada / Produção em Escala (1M Faixas)**: Migração planejada para **PostgreSQL 16+** com extensões:
-    * **`pgvector`**: Índices HNSW com vetores em `halfvec` (16-bit float) e *Iterative Index Scan* para mesclar filtros acústicos rígidos com busca semântica do LLM sem exaustão de nós.
-    * **`pg_trgm`**: Índices GIN para busca fonética e difusa (*fuzzy*) por artista e gênero.
-    * **Paralelismo de CPU**: Execução multi-threaded de queries com fórmulas matemáticas de similaridade (BPM harmônico, decaimento temporal gaussiano).
-    * **Concorrência Plena (MVCC)**: Ingestão massiva em Rust (`tokio-postgres` via `COPY`) sem locks com leitores ou agentes.
+## 8. Persistence & Large-Scale Growth (1,000,000+ Tracks)
+* **Detailed Comparative Study**:
+  * Full document in [`docs/DATABASE_SCALING_SQLITE_VS_POSTGRESQL.md`](DATABASE_SCALING_SQLITE_VS_POSTGRESQL.md).
+  * Architecture Decision Record: [ADR 0008 - Database Scaling Strategy and PostgreSQL Migration Roadmap](adr/0008-database-scaling-and-postgresql-migration-roadmap.md).
+* **Consolidated Guidelines**:
+  * **Current Phase (Development & Medium Scale)**: Keep embedded **SQLite with FTS5** for agility, in-memory unit tests (`:memory:`) and zero-infrastructure distribution.
+  * **Advanced Phase / Production at Scale (1M Tracks)**: Planned migration to **PostgreSQL 16+** with the extensions:
+    * **`pgvector`**: HNSW indexes with `halfvec` (16-bit float) vectors and *Iterative Index Scan* to combine strict acoustic filters with LLM semantic search without node exhaustion.
+    * **`pg_trgm`**: GIN indexes for phonetic and fuzzy search by artist and genre.
+    * **CPU Parallelism**: Multi-threaded execution of queries with mathematical similarity formulas (harmonic BPM, Gaussian time decay).
+    * **Full Concurrency (MVCC)**: Massive ingestion from Rust (`tokio-postgres` via `COPY`) without locking readers or agents.
 
 ---
 
-## 9. Idempotência, Identidade Canônica e Ciclo de Vida da Biblioteca
-* **Registro de Decisão Arquitetural**: [ADR 0009 - Library Idempotency, Track Identity via Full SHA-256 Path Hash, Stat-Cache, and Non-Destructive Lifecycle Policy](adr/0009-library-idempotency-stat-cache-and-lifecycle-policy.md).
-* **Diretrizes de Domínio**:
-  * **Identidade Canônica**: Chave primária determinística (`trk_<sha256_full>`) baseada no caminho normalizado minúsculo no SO.
-  * **Stat-Cache**: Validação instantânea via `os.stat` (`mtime` + `file_size`) para pular I/O redundante em varreduras repetidas.
-  * **Biblioteca Multidirecional**: A biblioteca é o catálogo persistido no SQLite, permitindo músicas espalhadas livremente por múltiplos discos, pastas ou pendrives.
-  * **Soft-Delete e Segurança Absoluta**: Arquivos inacessíveis tornam-se `MISSING` sem perda de dados acústicos ou playlists.
-  * **Purge Manual em Duas Etapas**: Exclusão definitiva de órfãos restrita ao comando explícito com a frase `PLEASEPRETTYPLEASE`.
-  * **Subagente Auditor Oportunista**: Agente de IA em background investiga quedas e reconcilia arquivos movidos/renomeados de dentro para fora sem travar a UI.
+## 9. Idempotency, Canonical Identity and Library Lifecycle
+* **Architecture Decision Record**: [ADR 0009 - Library Idempotency, Track Identity via Full SHA-256 Path Hash, Stat-Cache, and Non-Destructive Lifecycle Policy](adr/0009-library-idempotency-stat-cache-and-lifecycle-policy.md).
+* **Domain Guidelines**:
+  * **Canonical Identity**: A deterministic primary key (`trk_<sha256_full>`) based on the normalized, lowercase OS path.
+  * **Stat-Cache**: Instant validation via `os.stat` (`mtime` + `file_size`) to skip redundant I/O on repeated scans.
+  * **Multi-Location Library**: The library is the catalog persisted in SQLite, so music can be spread freely across multiple disks, folders or USB drives.
+  * **Soft-Delete and Absolute Safety**: Inaccessible files become `MISSING` without losing acoustic data or playlists.
+  * **Two-Step Manual Purge**: Permanent deletion of orphans is restricted to an explicit command with the phrase `PLEASEPRETTYPLEASE`.
+  * **Opportunistic Auditor Subagent**: A background AI agent investigates missing files and reconciles files moved or renamed from inside to outside the library without blocking the UI.
 
 ---
 
-## 10. Roadmap de Evolução Funcional e Próximas Funcionalidades Reais
-* **Documento Completo de Especificação**: [`docs/ROADMAP.md`](ROADMAP.md).
-* **Decisão Arquitetural de Integração**: [ADR 0010 - Estratégia de Integração do yt-dlp, Gestão de Dependências e Empacotamento de CI/CD](adr/0010-yt-dlp-integration-and-packaging-strategy.md).
-* **Decisão Arquitetural da Frente 1**: [ADR 0011 - Web Ingestion Pipeline, Two-Stage Staging Architecture, and Managed Library Taxonomy](adr/0011-web-ingestion-two-stage-staging-and-managed-library-taxonomy.md).
-* **Decisão de Governança da Biblioteca**: [ADR 0012 - Managed Library Location Governance, Cross-Platform Resolution, and Write-Access Safeguards](adr/0012-managed-library-governance-resolution-and-safeguards.md).
-* **Decisão de Manutenção, Consolidação e Deleção**: [ADR 0013 - Library Maintenance, Consolidation Imports, and Two-Tier Deletion Safeguards](adr/0013-library-maintenance-consolidation-and-deletion-safeguards.md).
-* **Frentes Estratégicas Mapeadas**:
-  1. **Frente 1: Ingestão Web e Download Seguro com `yt-dlp`**: Integração assíncrona, blindagem contra SSRF/DoS, extração de áudio para MP3/FLAC e catalogação automática.
-  2. **Frente 2: Motor de DSP Acústico e Fingerprinting Real**: Chromaprint via `pyacoustid`, medição de loudness EBU R128/LUFS, BPM acústico e Camelot Wheel.
-  3. **Frente 3: Reprodução de Áudio Integrada no Terminal (Player Engine)**: Player local concorrente com comandos de transporte (`/play`, `/pause`, `/resume`, `/stop`) e progresso visual.
-  4. **Frente 4: Curadoria por "Vibe" & Busca Semântica com Google Gemini**: Enriquecimento de humor/mood em lote e busca em linguagem natural.
-  5. **Frente 5: Auditor de Biblioteca, Consolidação & Deleção Segura (ADR 0009 & ADR 0013)**: Comandos `/unindex`, `/delete` (com send2trash e confirmação dupla), `/audit` (dashboard e deduplicação inteligente), `/retag` e `/library import`.
-  6. **Frente 6: Sessão Conversacional Multi-Turn no REPL**: Conversa contínua com estado via `google-genai` e suporte a subagentes autônomos.
-
+## 10. Functional Evolution Roadmap and Next Real Features
+* **Full Specification Document**: [`docs/ROADMAP.md`](ROADMAP.md).
+* **Integration Architecture Decision**: [ADR 0010 - yt-dlp Integration Strategy, Dependency Management and CI/CD Packaging](adr/0010-yt-dlp-integration-and-packaging-strategy.md).
+* **Front 1 Architecture Decision**: [ADR 0011 - Web Ingestion Pipeline, Two-Stage Staging Architecture, and Managed Library Taxonomy](adr/0011-web-ingestion-two-stage-staging-and-managed-library-taxonomy.md).
+* **Library Governance Decision**: [ADR 0012 - Managed Library Location Governance, Cross-Platform Resolution, and Write-Access Safeguards](adr/0012-managed-library-governance-resolution-and-safeguards.md).
+* **Maintenance, Consolidation and Deletion Decision**: [ADR 0013 - Library Maintenance, Consolidation Imports, and Two-Tier Deletion Safeguards](adr/0013-library-maintenance-consolidation-and-deletion-safeguards.md).
+* **Mapped Strategic Fronts**:
+  1. **Front 1: Web Ingestion and Safe Download with `yt-dlp`**: Asynchronous integration, SSRF/DoS hardening, audio extraction to MP3/FLAC and automatic cataloging.
+  2. **Front 2: Acoustic DSP Engine and Real Fingerprinting**: Chromaprint via `pyacoustid`, EBU R128/LUFS loudness measurement, acoustic BPM and the Camelot Wheel.
+  3. **Front 3: Integrated Terminal Audio Playback (Player Engine)**: A concurrent local player with transport commands (`/play`, `/pause`, `/resume`, `/stop`) and visual progress.
+  4. **Front 4: "Vibe" Curation & Semantic Search with Google Gemini**: Batch mood enrichment and natural-language search.
+  5. **Front 5: Library Auditor, Consolidation & Safe Deletion (ADR 0009 & ADR 0013)**: The `/unindex`, `/delete` (with send2trash and double confirmation), `/audit` (dashboard and smart deduplication), `/retag` and `/library import` commands.
+  6. **Front 6: Multi-Turn Conversational Session in the REPL**: Continuous stateful conversation via `google-genai` and support for autonomous subagents.
