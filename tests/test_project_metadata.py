@@ -67,3 +67,12 @@ def test_package_version_matches_pyproject() -> None:
 
     pyproject = tomllib.loads((ROOT_DIR / "pyproject.toml").read_text(encoding="utf-8"))
     assert musicmatch.__version__ == pyproject["project"]["version"]
+
+
+def test_license_uses_spdx_expression() -> None:
+    # The TOML-table form `license = { text = "..." }` is deprecated by setuptools,
+    # which stops supporting it after 2027-02-18; the SPDX string needs setuptools>=77.
+    pyproject = tomllib.loads((ROOT_DIR / "pyproject.toml").read_text(encoding="utf-8"))
+    assert pyproject["project"]["license"] == "MIT"
+    assert "LICENSE" in pyproject["project"]["license-files"]
+    assert "setuptools>=77.0.0" in pyproject["build-system"]["requires"]

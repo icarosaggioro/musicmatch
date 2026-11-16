@@ -8,7 +8,7 @@
 # Defines the tool that builds and installs the package.
 # setuptools is the robust standard for pure Python; once Rust extensions are added,
 # it can be replaced or complemented with 'maturin' (PEP 517).
-requires = ["setuptools>=61.0"]
+requires = ["setuptools>=77.0.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -16,7 +16,8 @@ name = "musicmatch"
 version = "0.2.0"
 description = "AI-Native local music management, curation, and DSP playback system for large-scale audio libraries."
 readme = "README.md"
-license = { text = "MIT" }
+license = "MIT"
+license-files = ["LICENSE"]
 requires-python = ">=3.14.6"
 authors = [
     { name = "Icaro Saggioro", email = "icaro.saggioro@gmail.com" }
