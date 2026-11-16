@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Remaining Portuguese docs translated to English: `PROJECT_CONTEXT.md`, `docs/RESEARCH_INDEX.md`, `docs/DATABASE_SCALING_SQLITE_VS_POSTGRESQL.md`, ADR 0010, the `[0.1.0]` changelog section and the comments in `pyproject.toml`. The yt-dlp reports were translated and renamed to `docs/YT-DLP_TECHNICAL_REPORT.md` (with its `.json` summary) and `docs/YT-DLP_TECHNICAL_AND_SECURITY_REPORT.md`.
 - README no longer hard-codes test counts or a coverage table that went stale; it lists ADRs 0010 to 0013, the roadmap and the changelog, and explains that coverage reports need `pytest-cov`, which is not in the `dev` extras.
 - Machine-local `file:///c:/...` links in the docs replaced with relative repository links, or with links to the public yt-dlp repository; local clone paths in ADR 0010 replaced with a placeholder.
+- CI jobs now time out: Quality Gates after 15 minutes and the AI code review after 20 (aligned with its 15-minute review task limit), instead of GitHub's 360-minute default. A test guards that every job declares a timeout.
 
 ### Fixed
 - `scripts/check.py` no longer prints a hard-coded "197 tests" in its success summary.
