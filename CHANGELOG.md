@@ -21,6 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - `scripts/check.py` no longer prints a hard-coded "197 tests" in its success summary.
+- `pyproject.toml` declares the license as an SPDX expression (`license = "MIT"` plus `license-files`) and requires `setuptools>=77.0.0`, removing the setuptools deprecation warning; the old table form stops being supported after 2027-02-18. The license itself is unchanged.
 
 ---
 
