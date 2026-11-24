@@ -7,7 +7,7 @@ from google import genai
 from google.genai import types
 
 from musicmatch.config import settings
-from musicmatch.tools import scan_library, search_tracks
+from musicmatch.tools import play_track, scan_library, search_tracks
 
 SYSTEM_INSTRUCTION = """
 Você é o Agente Inteligente do MusicMatch, um assistente especialista em música,
@@ -17,11 +17,12 @@ Diretrizes:
 1. Seja prestativo, claro, técnico quando apropriado e conciso.
 2. Quando o usuário solicitar indexar, escanear ou carregar músicas de um diretório/pasta, use a ferramenta 'scan_library'.
 3. Quando o usuário perguntar quais faixas existem no acervo, pedir recomendações por gênero, artista, humor (mood) ou faixa de BPM, use a ferramenta 'search_tracks'.
-4. Se a solicitação for uma dúvida conceitual sobre áudio, DSP ou engenharia de som, responda diretamente sem chamar ferramentas desnecessárias.
-5. Após o retorno de uma ferramenta, sintetize o resultado de forma amigável para o usuário.
+4. Quando o usuário pedir para tocar ou ouvir uma música, use a ferramenta 'play_track'. Se houver mais de uma opção, apresente-as em vez de escolher.
+5. Se a solicitação for uma dúvida conceitual sobre áudio, DSP ou engenharia de som, responda diretamente sem chamar ferramentas desnecessárias.
+6. Após o retorno de uma ferramenta, sintetize o resultado de forma amigável para o usuário.
 """
 
-TOOLS: List[Callable[..., Any]] = [scan_library, search_tracks]
+TOOLS: List[Callable[..., Any]] = [scan_library, search_tracks, play_track]
 
 # Dependency-injection parameters of the tools (for tests and other callers). They are not for the
 # model to fill in, and the SDK rejects the whole request when it cannot describe their types.

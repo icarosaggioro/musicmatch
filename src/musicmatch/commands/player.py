@@ -1,10 +1,12 @@
 """Playback Commands (ADR 0015, ADR 0017).
 
 Transport:
-    /play [id]              Plays a track now. '/play' alone continues a paused track (also
-                            after restarting the app) or plays the queue.
+    /play [id | text]       Plays a track now, by ID or by searching the catalog. '/play' alone
+                            continues a paused track (also after restarting the app) or plays
+                            the queue.
     /pause                  Pauses keeping the position (even across restarts); run again, or
                             '/play', to continue.
+    /resume                 Continues a paused track.
     /stop                   Stops and resets to the start of the queue (the queue is kept).
     /next                   Skips to the next queued track.
     /volume [0-100]         Shows or sets the volume.
@@ -35,13 +37,13 @@ cursor marks the entry that plays next. The queue, the paused position, the volu
 play counters are persisted in the catalog database (ADR 0016).
 """
 
+import sys
 from typing import List, Optional
 
 from musicmatch.commands.base import Command, CommandContext
 from musicmatch.domain.models import Track
 from musicmatch.domain.player import QueueOrder, parse_queue_order
-
-_MIN_PREFIX_HEX = 4
+from musicmatch.services.track_lookup import find_track, id_prefix
 
 
 def _player(ctx: CommandContext):
@@ -55,16 +57,51 @@ def _player(ctx: CommandContext):
     return player
 
 
+def playback_summary(ctx: CommandContext) -> Optional[str]:
+    """One line about the player for '/status', or None when there is nothing to tell. Uses the
+    running player, else the saved session: looking at the status never starts the audio engine."""
+    player_module = sys.modules.get("musicmatch.services.player")
+    player = getattr(player_module, "_player", None)
+    if player is not None:
+        status = player.status()
+        state, current, position = status.state.value, status.current, status.position_seconds
+        volume, size = status.volume, len(status.queue)
+    else:
+        db_path = getattr(ctx.db, "db_path", None)
+        if not isinstance(db_path, str) or db_path == ":memory:":
+            return None
+        from musicmatch.storage.playback_store import SQLitePlaybackStore
+
+        store = SQLitePlaybackStore(db_path)
+        try:
+            saved, size = store.load_session(), len(store.load_queue())
+        finally:
+            store.close()
+        state, volume = saved.state, saved.volume
+        current = saved.track if state == "PAUSED" else None
+        position = saved.position_seconds
+    label = {"PLAYING": "▶ Tocando", "PAUSED": "⏸ Pausado"}.get(state, "⏹ Parado")
+    if current is not None:
+        label += f": {current.artist} - {current.title} [{_clock(position)} / {_clock(current.duration_seconds or 0)}]"
+    if volume is not None:
+        label += f" · volume {volume}%"
+    return f"{label} · fila: {size} faixa(s)"
+
+
+def _clock(seconds: float) -> str:
+    minutes, secs = divmod(int(seconds), 60)
+    return f"{minutes:02d}:{secs:02d}"
+
+
 def resolve_track(ref: str, ctx: CommandContext) -> Optional[Track]:
     """Resolves a full track ID or a unique short prefix; renders an error and returns None otherwise."""
     ref = ref.strip()
     track = ctx.db.get_track(ref) if hasattr(ctx.db, "get_track") else None
     if isinstance(track, Track):
         return track
-    prefix = ref if ref.startswith("trk_") else f"trk_{ref}"
-    hex_part = prefix[4:]
-    if len(hex_part) >= _MIN_PREFIX_HEX and all(c in "0123456789abcdef" for c in hex_part.lower()):
-        matches = ctx.db.find_tracks_by_id_prefix(prefix.lower(), limit=2) if hasattr(ctx.db, "find_tracks_by_id_prefix") else []
+    prefix = id_prefix(ref)
+    if prefix:
+        matches = ctx.db.find_tracks_by_id_prefix(prefix, limit=2) if hasattr(ctx.db, "find_tracks_by_id_prefix") else []
         if len(matches) == 1:
             return matches[0]
         if len(matches) > 1:
@@ -101,11 +138,11 @@ def _play_queue(ctx: CommandContext) -> bool:
 
 
 class PlayCommand(_PlayerCommand):
-    usage = "/play <id>  (sem argumentos: retoma a faixa pausada ou inicia a fila)"
+    usage = "/play <id ou busca>  (sem argumentos: retoma a faixa pausada ou inicia a fila)"
 
     def __init__(self) -> None:
         super().__init__(
-            "/play", "Reproduz uma faixa: /play <id>. Sem argumentos, retoma a faixa pausada ou inicia a fila.",
+            "/play", "Reproduz uma faixa: /play <id ou busca>. Sem argumentos, retoma a faixa pausada ou inicia a fila.",
             ["/tocar"],
         )
 
@@ -116,7 +153,7 @@ class PlayCommand(_PlayerCommand):
 
             status = player.status()
             if player.state == PlayerState.PLAYING:
-                ctx.ui.render_info("Já existe uma faixa tocando. Use /pause, /stop, /next ou /play <id>.")
+                ctx.ui.render_info("Já existe uma faixa tocando. Use /pause, /stop, /next ou /play <id ou busca>.")
             elif player.state == PlayerState.PAUSED or status.queue:
                 player.play()  # outcome (playing / missing / errors) arrives as player events
             else:
@@ -125,9 +162,35 @@ class PlayCommand(_PlayerCommand):
             return True
         if len(args) == 1 and args[0].lower() in ("queue", "fila"):
             return _play_queue(ctx)  # former spelling of /queue-play, kept for muscle memory
-        track = resolve_track(" ".join(args), ctx)
-        if track is not None:
-            player.play_track(track)
+        ref = " ".join(args)
+        found = find_track(ctx.db, ref)
+        if found.track is not None:
+            player.play_track(found.track)
+        elif found.candidates:
+            ctx.ui.render_warning(f"Mais de uma faixa corresponde a '{ref}'. Escolha com /play <id>:")
+            ctx.ui.render_search_results(found.candidates)
+            if found.more:
+                ctx.ui.render_info(f"Mostrando as {len(found.candidates)} primeiras: refine a busca.")
+        else:
+            ctx.ui.render_error(f"Nenhuma faixa encontrada para '{ref}'.")
+            ctx.ui.render_info("Use /search <termo> ou /list para ver as faixas do catálogo.")
+        return True
+
+
+class ResumeCommand(_PlayerCommand):
+    def __init__(self) -> None:
+        super().__init__("/resume", "Continua a faixa pausada de onde parou.", ["/retomar"])
+
+    def execute(self, args: List[str], ctx: CommandContext) -> bool:
+        from musicmatch.domain.player import PlayerState
+
+        player = _player(ctx)
+        if player.state == PlayerState.PAUSED:
+            player.resume()
+        elif player.state == PlayerState.PLAYING:
+            ctx.ui.render_info("A faixa já está tocando.")
+        else:
+            ctx.ui.render_info("Não há faixa pausada. Use /play para tocar a fila.")
         return True
 
 
@@ -385,6 +448,7 @@ class QueueSortCommand(_PlayerCommand):
 PLAYER_COMMANDS = [
     PlayCommand,
     PauseCommand,
+    ResumeCommand,
     StopCommand,
     NextCommand,
     VolumeCommand,

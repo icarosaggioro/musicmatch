@@ -24,6 +24,7 @@ from musicmatch.commands.player import (
     QueueRepeatCommand,
     QueueShuffleCommand,
     QueueSortCommand,
+    ResumeCommand,
     StopCommand,
     VolumeCommand,
 )
@@ -83,6 +84,7 @@ __all__ = [
     "QueueRepeatCommand",
     "QueueShuffleCommand",
     "QueueSortCommand",
+    "ResumeCommand",
     "ScanCommand",
     "SearchCommand",
     "StagingCommand",

@@ -9,10 +9,12 @@ Follows ADR 0012 and ADR 0013:
 - Supports catalog reset (/library clear / reset).
 """
 
+import sqlite3
 from pathlib import Path
 from typing import Dict, List, Optional
 
 from musicmatch.commands.base import Command, CommandContext
+from musicmatch.commands.player import playback_summary
 from musicmatch.config import settings
 from musicmatch.services.location import library_location_manager
 from musicmatch.services.maintenance import library_maintenance_service
@@ -71,6 +73,13 @@ class LibraryCommand(Command):
                 db_size = stats.get("db_size_kb", 0)
                 if isinstance(db_size, (int, float)) and db_size > 0:
                     status_info["Tamanho do Arquivo .db"] = f"{db_size} KB"
+
+        try:
+            playback = playback_summary(ctx)
+        except sqlite3.Error as exc:  # a locked or damaged playback store must not hide the rest
+            playback = f"indisponível ({exc})"
+        if playback:
+            status_info["Reprodução"] = playback
 
         ctx.ui.render_status(status_info)
 

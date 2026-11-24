@@ -299,7 +299,7 @@ def test_command_interface_contract():
     """Verify that all registered commands fulfill the standardized Command interface."""
     registry = CommandRegistry()
     commands = registry.get_all_commands()
-    assert len(commands) == 45
+    assert len(commands) == 46
 
     for cmd in commands:
         # Canonical name
@@ -369,6 +369,7 @@ def test_commands_alphabetical_order():
         "/queue-repeat",
         "/queue-shuffle",
         "/queue-sort",
+        "/resume",
         "/retag",
         "/scan",
         "/search",

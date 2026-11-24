@@ -28,6 +28,7 @@ from musicmatch.commands.registry import CommandRegistry
 from musicmatch.config import settings
 from musicmatch.diagnostics.logging_setup import is_fatal, log_path, log_unexpected
 from musicmatch.storage.sqlite_repo import SQLiteTrackRepository
+from musicmatch.tools.player import set_event_listener
 from musicmatch.ui.renderer import ConsoleUI
 
 logger = logging.getLogger(__name__)
@@ -59,6 +60,9 @@ class Harness:
                 self.ui.render_error(f"Erro de Inicialização: {e}")
                 self.ui.render_info("💡 Dica: Configure GEMINI_API_KEY no arquivo .env da raiz.")
                 raise
+
+        # Playback started by the agent reports to the same screen as the commands.
+        set_event_listener(getattr(self.ui, "render_player_event", None))
 
         # Constrói o contexto compartilhado que será entregue a cada comando executado
         self.ctx = CommandContext(

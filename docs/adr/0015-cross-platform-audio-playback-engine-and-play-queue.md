@@ -84,6 +84,8 @@ Documentation sites (python-sounddevice.readthedocs.io, github.com) were unreach
 
 Track IDs are 68 characters long, so every command accepts any **unique prefix** of at least 4 hex digits, with or without `trk_`. The lookup is a primary-key range scan. `/list` and `/search` now show the short form (`ID: trk_3fa2b9c1`).
 
+> *Amended by issue #9*: `/play` also takes a search text. An ID or a search with a single match (or a single exact title) plays; otherwise the candidates are listed and nothing plays. Words in the text are always literal, never FTS5 operators. `/resume` continues a paused track, `/status` shows the playback state without starting the engine, and the agent has a `play_track` tool with the same lookup rules.
+
 ### 4. Missing tracks
 A track is playable only if its status is not `MISSING` **and** its file exists at play time. The check covers:
 - `/play <id>`: a notice is shown and the current track keeps playing.
