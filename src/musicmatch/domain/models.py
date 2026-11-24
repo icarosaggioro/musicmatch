@@ -38,6 +38,9 @@ class Track(BaseModel):
     status: str = Field(default="AVAILABLE", description="Status de disponibilidade ('AVAILABLE' | 'MISSING')")
     year: Optional[int] = Field(default=None, description="Ano de lançamento extraído das tags")
     track_number: Optional[int] = Field(default=None, description="Número da faixa no álbum")
+    musical_key: Optional[str] = Field(default=None, description="Tonalidade detectada pela análise acústica (ex: 'A minor')")
+    play_count: int = Field(default=0, ge=0, description="Reproduções contabilizadas da faixa (ADR 0016)")
+    last_played_at: Optional[str] = Field(default=None, description="Data/hora UTC da última reprodução contabilizada")
 
     @classmethod
     def canonicalize_path(cls, file_path: str) -> str:
@@ -65,6 +68,7 @@ class ScanResult(BaseModel):
     tracks_unchanged: int = Field(default=0, ge=0, description="Total de faixas inalteradas puladas via Stat-Cache")
     tracks_missing: int = Field(default=0, ge=0, description="Total de faixas catalogadas anteriormente ausentes no disco")
     errors_count: int = Field(default=0, ge=0, description="Total de arquivos corrompidos ou ilegíveis")
+    tracks_pending_analysis: int = Field(default=0, ge=0, description="Faixas do diretório aguardando análise acústica (/analyze)")
     sample_tracks: List[str] = Field(default_factory=list, description="Amostra descritiva das faixas adicionadas")
     duration_ms: float = Field(ge=0, description="Tempo decorrido na varredura em milissegundos")
     database_total_tracks: int = Field(ge=0, description="Contagem total acumulada no banco de dados")

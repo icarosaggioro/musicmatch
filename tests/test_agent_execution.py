@@ -11,14 +11,24 @@ Por que testamos o Agente com Mocks em vez de chamar a API real do Gemini?
 """
 
 import pytest
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 from google.genai import types
 from musicmatch.agent.core import SingleTurnAgent
+from musicmatch.services.library import LibraryService
+from musicmatch.storage.sqlite_repo import SQLiteTrackRepository
 
 @pytest.fixture
 def agent():
-    """Instancia um SingleTurnAgent com chave simulada."""
-    return SingleTurnAgent(api_key="fake_test_key", model_name="gemini-3.6-flash")
+    """Instancia um SingleTurnAgent com chave simulada.
+
+    As ferramentas reais continuam sendo executadas, mas sobre uma biblioteca em memória:
+    nunca sobre o catálogo global (ver tests/conftest.py)."""
+    repo = SQLiteTrackRepository(db_path=":memory:")
+    library = LibraryService(repository=repo)
+    with patch("musicmatch.tools.scanner.library_service", library), \
+            patch("musicmatch.tools.search.library_service", library):
+        yield SingleTurnAgent(api_key="fake_test_key", model_name="gemini-3.6-flash")
+    repo.close()
 
 def test_agent_run_direct_text_response(agent):
     """Testa o caso em que a LLM responde diretamente sem chamar ferramentas."""

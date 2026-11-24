@@ -1,7 +1,7 @@
 """Testes unitários para o CommandRegistry e comandos do Harness."""
 
 import pytest
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 from musicmatch.commands.base import CommandContext
 from musicmatch.commands.registry import CommandRegistry
 
@@ -35,6 +35,7 @@ def test_command_registry_defaults():
     assert "/promote" in names
     assert "/clear" in names
     assert "/exit" in names
+    assert "/analyze" in names
     assert "/lib" in registry.lookup_map
 
 def test_is_command_detection():
@@ -161,9 +162,12 @@ def test_dispatch_clear(mock_context):
 def test_dispatch_unclosed_quotes_fallback(mock_context):
     registry = CommandRegistry()
     mock_context.registry = registry
-    # String com aspas não fechadas dispara ValueError no shlex, caindo no split normal
-    should_continue = registry.dispatch('/scan "C:/Musica_Sem_Fechar_Aspas', mock_context)
+    # String com aspas não fechadas dispara ValueError no shlex, caindo no split normal.
+    # A varredura em si é simulada: o teste trata do despacho, não do catálogo (tests/conftest.py).
+    with patch("musicmatch.commands.scan.scan_library", return_value={"status": "error", "message": "x"}) as scan:
+        should_continue = registry.dispatch('/scan "C:/Musica_Sem_Fechar_Aspas', mock_context)
     assert should_continue is True
+    scan.assert_called_once_with(path='"C:/Musica_Sem_Fechar_Aspas')
 
 def test_dispatch_empty_input(mock_context):
     registry = CommandRegistry()
@@ -295,7 +299,7 @@ def test_command_interface_contract():
     """Verify that all registered commands fulfill the standardized Command interface."""
     registry = CommandRegistry()
     commands = registry.get_all_commands()
-    assert len(commands) == 17
+    assert len(commands) == 45
 
     for cmd in commands:
         # Canonical name
@@ -328,23 +332,51 @@ def test_commands_alphabetical_order():
     expected_sorted = sorted(names, key=lambda n: n.lower())
     assert names == expected_sorted
     assert names == [
+        "/analyze",
         "/audit",
         "/clear",
         "/delete",
         "/download",
         "/exit",
         "/help",
+        "/issue",
+        "/issue-delete",
+        "/issue-dismiss",
         "/library",
         "/list",
         "/model",
+        "/next",
+        "/pause",
+        "/play",
+        "/playlist",
+        "/playlist-delete",
+        "/playlist-delete-with-tracks",
+        "/playlist-export",
+        "/playlist-import",
+        "/playlist-load",
+        "/playlist-remove",
+        "/playlist-rename",
+        "/playlist-save",
         "/promote",
         "/prune",
+        "/queue",
+        "/queue-add",
+        "/queue-add-last",
+        "/queue-clear",
+        "/queue-consume",
+        "/queue-play",
+        "/queue-remove",
+        "/queue-repeat",
+        "/queue-shuffle",
+        "/queue-sort",
         "/retag",
         "/scan",
         "/search",
         "/staging",
         "/status",
+        "/stop",
         "/unindex",
+        "/volume",
     ]
 
 

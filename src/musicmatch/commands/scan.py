@@ -55,8 +55,13 @@ class ScanCommand(Command):
         if tracks_missing > 0:
             ctx.ui.render_warning(f"  [!] {tracks_missing} faixa(s) marcada(s) como ausente(s) no disco (Soft-Delete).")
         if errors_count > 0:
-            ctx.ui.render_warning(f"  [!] {errors_count} arquivo(s) com erro ignorado(s).")
+            ctx.ui.render_warning(f"  [!] {errors_count} arquivo(s) não indexado(s) por problemas (detalhes em /issue).")
 
         total_tracks = ctx.db.count() if hasattr(ctx.db, "count") else result.get("database_total_tracks", 0)
         ctx.ui.render_info(f"Total na biblioteca agora: {total_tracks} faixa(s).")
+        pending_analysis = result.get("tracks_pending_analysis", 0)
+        if isinstance(pending_analysis, int) and pending_analysis > 0:
+            ctx.ui.render_info(
+                f"🎛️  {pending_analysis} faixa(s) aguardando análise acústica (LUFS, BPM, tonalidade, fingerprint). Use /analyze."
+            )
         return True

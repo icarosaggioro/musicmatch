@@ -27,8 +27,26 @@ class LibraryService:
     """Orquestrador dos casos de uso da biblioteca musical do MusicMatch."""
 
     def __init__(self, repository: Optional[SQLiteTrackRepository] = None) -> None:
-        self.repo = repository or SQLiteTrackRepository()
-        self.scanner = AudioScanner(repository=self.repo)
+        self._repo = repository
+        self._scanner: Optional[AudioScanner] = None
+
+    @property
+    def repo(self) -> SQLiteTrackRepository:
+        """Opened on first use, not at import: importing a module must never create files (the
+        process-wide instance below would otherwise open the catalog as soon as it is imported)."""
+        if self._repo is None:
+            self._repo = SQLiteTrackRepository()
+        return self._repo
+
+    @repo.setter
+    def repo(self, value: SQLiteTrackRepository) -> None:
+        self._repo = value
+
+    @property
+    def scanner(self) -> AudioScanner:
+        if self._scanner is None or self._scanner.repo is not self.repo:
+            self._scanner = AudioScanner(repository=self.repo)
+        return self._scanner
 
     def add_track(self, track: Track) -> Track:
         """Adiciona uma nova faixa à biblioteca após validar e persistir."""

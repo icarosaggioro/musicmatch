@@ -4,7 +4,7 @@ Defines strongly-typed Pydantic V2 models for audit metrics, duplicate groupings
 and file maintenance operation results.
 """
 
-from typing import List, Optional
+from typing import List, Literal, Optional
 from pydantic import BaseModel, Field
 from musicmatch.domain.models import Track
 
@@ -19,6 +19,9 @@ class LibraryAuditReport(BaseModel):
     low_bitrate_tracks: int = Field(ge=0, description="Total number of degraded bitrate tracks (< 128 kbps)")
     duplicate_groups_count: int = Field(ge=0, description="Total number of identified duplicate track groups")
     missing_sample: List[Track] = Field(default_factory=list, description="Sample of missing tracks for inspection")
+    analyzed_tracks: int = Field(default=0, ge=0, description="Available tracks with up-to-date acoustic analysis (ADR 0014)")
+    pending_analysis_tracks: int = Field(default=0, ge=0, description="Available tracks still waiting for acoustic analysis")
+    acoustic_duplicate_groups_count: int = Field(default=0, ge=0, description="Groups of exact acoustic fingerprint duplicates")
 
 
 class DuplicateGroup(BaseModel):
@@ -28,6 +31,13 @@ class DuplicateGroup(BaseModel):
     tracks: List[Track] = Field(..., min_length=2, description="List of duplicate track instances")
     recommended_track_id: Optional[str] = Field(default=None, description="ID of the highest-quality candidate to preserve")
     recommendation_reason: Optional[str] = Field(default=None, description="Explanation for the quality recommendation")
+    match_type: Literal["METADATA", "EXACT_FINGERPRINT", "FUZZY_FINGERPRINT"] = Field(
+        default="METADATA",
+        description="Evidence behind the grouping: normalized tags or acoustic fingerprint (exact / fuzzy)",
+    )
+    similarity: Optional[float] = Field(
+        default=None, ge=0, le=1, description="Lowest pairwise acoustic similarity in the group (fingerprint matches only)"
+    )
 
 
 class ImportResult(BaseModel):

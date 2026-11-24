@@ -9,6 +9,7 @@ Follows the Command Pattern:
 import shlex
 from typing import Dict, List, Optional
 
+from musicmatch.commands.analyze import AnalyzeCommand
 from musicmatch.commands.audit import AuditCommand
 from musicmatch.commands.base import Command, CommandContext
 from musicmatch.commands.clear import ClearCommand
@@ -16,9 +17,12 @@ from musicmatch.commands.delete import DeleteCommand
 from musicmatch.commands.download import DownloadCommand
 from musicmatch.commands.exit import ExitCommand
 from musicmatch.commands.help import HelpCommand
+from musicmatch.commands.issue import ISSUE_COMMANDS
 from musicmatch.commands.library import LibraryCommand
 from musicmatch.commands.list import ListCommand
 from musicmatch.commands.model import ModelCommand
+from musicmatch.commands.player import PLAYER_COMMANDS
+from musicmatch.commands.playlist import PLAYLIST_COMMANDS
 from musicmatch.commands.promote import PromoteCommand
 from musicmatch.commands.prune import PruneCommand
 from musicmatch.commands.retag import RetagCommand
@@ -27,6 +31,17 @@ from musicmatch.commands.search import SearchCommand
 from musicmatch.commands.staging import StagingCommand
 from musicmatch.commands.status import StatusCommand
 from musicmatch.commands.unindex import UnindexCommand
+
+
+def split_command_line(raw_input: str) -> List[str]:
+    """Splits a command line honouring "double" and 'single' quotes, but, unlike shlex.split,
+    keeping backslashes literal: Windows paths such as C:\\Music\\Rock.m3u8 must reach commands
+    intact (shlex.split turned them into 'C:MusicRock.m3u8')."""
+    lexer = shlex.shlex(raw_input, posix=True)
+    lexer.whitespace_split = True
+    lexer.escape = ""
+    lexer.commenters = ""  # '#' is data ('/queue-remove #2'), as with shlex.split
+    return list(lexer)
 
 
 class CommandRegistry:
@@ -42,6 +57,7 @@ class CommandRegistry:
     def _register_defaults(self) -> None:
         """Registra os comandos padrão do sistema no início dos tempos."""
         defaults: List[Command] = [
+            AnalyzeCommand(),
             AuditCommand(),
             ClearCommand(),
             DeleteCommand(),
@@ -60,6 +76,9 @@ class CommandRegistry:
             StatusCommand(),
             UnindexCommand(),
         ]
+        defaults.extend(command_class() for command_class in PLAYER_COMMANDS)
+        defaults.extend(command_class() for command_class in PLAYLIST_COMMANDS)
+        defaults.extend(command_class() for command_class in ISSUE_COMMANDS)
         for cmd in defaults:
             self.register(cmd)
 
@@ -108,7 +127,7 @@ class CommandRegistry:
             bool: True para manter o loop rodando; False para encerrar o REPL.
         """
         try:
-            tokens = shlex.split(raw_input)
+            tokens = split_command_line(raw_input)
         except ValueError:
             tokens = raw_input.split()
 

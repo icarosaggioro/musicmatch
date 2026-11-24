@@ -36,7 +36,7 @@ class LibraryLocationManager:
     """Manages the canonical on-disk storage location for the Managed Library."""
 
     def __init__(self, config_path: Optional[Path] = None) -> None:
-        self.config_file = config_path or (PROJECT_ROOT / "data" / "library_config.json")
+        self.config_file = config_path or Path(settings.LIBRARY_CONFIG_PATH)
         self._cached_path: Optional[Path] = None
 
     @classmethod

@@ -15,8 +15,28 @@ The persistent catalog of all scanned tracks, playlists, and acoustic indices ma
 _Avoid_: Collection, database, audio folder, root folder
 
 **Acoustic Fingerprint**:
-A compact numerical vector representing the perceptual audio signature of a track used for acoustic identification and deduplication.
+A compact numerical vector representing the perceptual audio signature of a track used for acoustic identification and deduplication. In MusicMatch it is a sequence of 32-bit sub-fingerprints (~11 per second, first 120 s of audio, algorithm `mmfp1`) compared by bit error rate (ADR 0014).
 _Avoid_: Audio hash, sound ID
+
+**Acoustic Analysis**:
+The incremental, resumable `/analyze` pass that decodes each track once to measure its Loudness Measurement, tempo, Musical Key, Acoustic Fingerprint and Waveform Summary. It is deliberately separate from scanning, which only reads tags and file stats.
+_Avoid_: Deep scan, DSP scan, re-index
+
+**Analysis Stamp**:
+The file modification time, size and analysis version recorded with a track's analysis. When the stamp no longer matches the catalog (the file changed) or the version is outdated, the track is pending analysis again.
+_Avoid_: Analysis cache key, checksum
+
+**Musical Key / Camelot Code**:
+The detected tonic and mode of a track (e.g. `A minor`) and its position on the Camelot wheel (e.g. `8A`) used for harmonic mixing; adjacent codes mix smoothly.
+_Avoid_: Tone, scale, pitch
+
+**Exact Acoustic Duplicate**:
+Two or more tracks whose Acoustic Fingerprints are bit-identical with compatible durations: the same decoded audio, regardless of tags, file names or container.
+_Avoid_: Same file, copy, hash duplicate
+
+**Fuzzy Acoustic Match**:
+Two or more tracks whose Acoustic Fingerprints differ by at most 20% of their bits at the best alignment: the same recording across re-encodes, bitrates, sample rates or re-rips.
+_Avoid_: Similar song, fuzzy match (which names the tag-based Fast Relocation heuristic), cover detection
 
 **Waveform Summary**:
 A lightweight condensed array of peak and RMS amplitude values used for instant UI visual rendering.
@@ -53,6 +73,64 @@ _Avoid_: Background scanner, watcher thread, fixer bot
 **Fast Relocation Match**:
 The deterministic reconciliation heuristic that identifies moved or renamed audio files by matching exact file size in bytes, duration, title, and artist against currently missing tracks, migrating database keys and preserving acoustic analysis without re-running DSP.
 _Avoid_: Re-import, fuzzy match, duplicate track
+
+**Play Queue**:
+The persistent, ordered list of entries the player goes through; the same track may appear several times. Played entries stay until the user removes them; a cursor marks the entry that plays next. `/queue-add` inserts at the cursor (plays next); `/queue-add-last` appends. Every command operating on it is named `/queue-<action>`.
+_Avoid_: Playlist (a named, curated collection), backlog, up-next list
+
+**Queue Pass**:
+One run through the Play Queue from the entry at the cursor to the last entry. Entries before the cursor have been passed in the current pass (✓ in `/queue`). A pass ends by stopping, or, with Repeat Mode on, by wrapping to the first entry and starting a new pass.
+_Avoid_: Loop, cycle, round
+
+**Repeat Mode**:
+The persistent queue setting (`/queue-repeat`) that starts a new Queue Pass from the first entry when the last one ends, instead of stopping. It repeats the entire queue, never a single track. Excludes Consume Mode.
+_Avoid_: Loop mode, repeat-one, continuous play
+
+**Consume Mode**:
+The persistent queue setting (`/queue-consume`) under which a queue entry leaves the Play Queue once it has been played (the Play Count rule) and playback moves on from it (it ends, `/next`, `/play <id>`). Entries skipped early, stopped, paused or unavailable stay. Off by default: played entries are kept. Excludes Repeat Mode.
+_Avoid_: Auto-remove, auto-clean, pop mode, history trimming
+
+**Queue Reorder**:
+Shuffling (`/queue-shuffle`) or sorting (`/queue-sort`) the whole Play Queue, also during playback. It rearranges the list itself, so `/queue` always shows the real play order. Playback continues from the current entry: sorting keeps it at its new position, shuffling moves it to the top.
+_Avoid_: Shuffle mode, sort mode, play order, random play
+
+**Playlist**:
+A named, ordered list of Library tracks kept in the catalog; the same track may appear several times. It is filled from the Play Queue (`/playlist-save`) and loaded back into it (`/playlist-load`), and exchanged with other players as M3U/M3U8. Its entries follow moved tracks, keep missing (soft-deleted) ones, and leave when a track is removed from the Library. Names are unique ignoring case and accents. Every command operating on it is named `/playlist-<action>`; `delete` removes the playlist itself, `remove` takes tracks out of it (by ID: every occurrence; by `#position`: one entry), as `/queue-remove` does for the queue.
+_Avoid_: Queue (the transient list the player goes through), collection, mix, album
+
+**Now Playing**:
+The single track currently loaded in the player, whether playing or paused. It is not part of the Play Queue.
+_Avoid_: Current song, active file
+
+**Resume Point**:
+The persisted paused track together with its playback position and the time already listened; created by `/pause` or by leaving the application while a track plays, and continued by `/pause` or `/play`. `/stop` discards it and returns to the first queue entry.
+_Avoid_: Bookmark, last song, saved state
+
+**Play Count**:
+The number of times a track was actually listened to past the play-count threshold (60 seconds of listening, or the whole track when shorter); each counted play also increments the library-wide Total Play Count and appends a Play History entry.
+_Avoid_: Views, hits, queue count
+
+**Play History**:
+The append-only log of counted plays (track, timestamp, listened seconds) kept even when a track is later unindexed; raw material for learning listening preferences.
+_Avoid_: Scrobble log, recently played list
+
+**Short Track ID**:
+Any unique prefix (at least 4 hex digits, `trk_` optional) of a Canonical Path Hash ID accepted by playback commands; listings show the first 8 hex digits (e.g. `trk_3fa2b9c1`).
+_Avoid_: Track number, index, alias
+
+### Diagnostics Domain
+
+**Issue**:
+A foreseen problem with a resource (file, folder, track, playlist, playlist file) or the environment (audio device, database) met while MusicMatch worked, kept in the catalog for the user to review. One Issue per kind and subject: meeting it again counts an occurrence. Reported by services through a non-blocking, thread-safe reporter; listed with `/issue`.
+_Avoid_: Error queue (the Play Queue is the only queue), error, bug, alert, log entry
+
+**Dismiss / Delete (an Issue)**:
+Dismiss keeps the Issue as silenced: it is never raised again, however often it recurs, until purged for not recurring (180 days). Delete forgets it: the same problem is registered as a new Issue if it happens again.
+_Avoid_: Ignore, clear, resolve (reserved for automatic resolution, ADR 0020)
+
+**Developer Log**:
+The rotating text file (`data/logs/musicmatch.log`) where unforeseen failures (bugs) from any thread are written with their traceback; the screen shows only a one-line notice with a reference to the entry. Foreseen problems are Issues, not log entries.
+_Avoid_: Error log (ambiguous), console log, debug output
 
 ### Ingestion & Acquisition Domain
 
