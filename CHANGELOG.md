@@ -36,6 +36,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Test guard (`tests/test_docs_links.py`) that fails when project docs link to machine-local `file:` paths or to repository files that do not exist.
 
 ### Changed
+- `/audit duplicates` trusts the audio over the tags: analysed tracks are grouped by fingerprint and only tracks without one fall back to artist and title. `--tags` keeps the previous behaviour (#28).
 - Importing MusicMatch no longer opens the catalog database or creates the staging folder: the process-wide services open them on first use (ADR 0021).
 - New setting `MUSICMATCH_LIBRARY_CONFIG`: where `/library set-path` persists the chosen library (default unchanged: `data/library_config.json`).
 - Scan and playback messages are shorter: the file path and the advice are in the issue (`/issue`). `/scan` says how many files were not indexed instead of "files with errors ignored".

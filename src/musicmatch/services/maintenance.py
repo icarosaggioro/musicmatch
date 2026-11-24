@@ -29,6 +29,7 @@ from musicmatch.domain.maintenance import (
 )
 from musicmatch.domain.issues import IssueKind
 from musicmatch.domain.models import Track
+from musicmatch.dsp.fingerprint import FINGERPRINT_ALGORITHM
 from musicmatch.services.issues import report_issue
 from musicmatch.services.location import LibraryLocationManager, library_location_manager
 from musicmatch.services.promotion import sanitize_filename_component
@@ -95,7 +96,7 @@ class LibraryMaintenanceService:
             if t.bitrate_kbps and t.bitrate_kbps < 128:
                 low_bitrate_count += 1
 
-        duplicates = self.find_duplicates()
+        duplicates = self.find_duplicates(strategy="metadata")
         missing_count = len(missing_tracks)
         available_count = total_tracks - missing_count
 
@@ -117,16 +118,23 @@ class LibraryMaintenanceService:
             acoustic_duplicate_groups_count=len(acoustic_groups),
         )
 
-    def find_duplicates(self, strategy: Literal["metadata", "exact", "fuzzy"] = "metadata") -> List[DuplicateGroup]:
+    def find_duplicates(self, strategy: Literal["auto", "metadata", "exact", "fuzzy"] = "auto") -> List[DuplicateGroup]:
         """Identifies duplicate groups and recommends the highest-quality copy to keep.
 
         Strategies:
+        - "auto" (default): the audio is the evidence for analysed tracks (as "exact"); tags are
+          used only among tracks without a fingerprint. Tracks whose audio differs are never
+          grouped because of equal tags (a live and a studio version are not duplicates).
         - "metadata": normalized artist + title (works without analysis, misses retagged copies).
         - "exact": identical acoustic fingerprint (same decoded audio, any tags/container).
         - "fuzzy": fingerprint similarity; finds the same recording across encodes/bitrates.
         """
         if strategy == "metadata":
-            return self._find_metadata_duplicates()
+            return self._find_metadata_duplicates(self.repo.get_all_tracks())
+        if strategy == "auto":
+            fingerprinted = self.repo.get_fingerprinted_track_ids(FINGERPRINT_ALGORITHM)
+            without_print = [t for t in self.repo.get_all_tracks() if t.id not in fingerprinted]
+            return self.find_duplicates("exact") + self._find_metadata_duplicates(without_print)
         if strategy == "exact":
             clusters = self.analysis_service.find_exact_duplicates()
         elif strategy == "fuzzy":
@@ -169,9 +177,8 @@ class LibraryMaintenanceService:
         )
         return recommended, reason
 
-    def _find_metadata_duplicates(self) -> List[DuplicateGroup]:
-        """Groups tracks by normalized artist:title keys."""
-        tracks = self.repo.get_all_tracks()
+    def _find_metadata_duplicates(self, tracks: List[Track]) -> List[DuplicateGroup]:
+        """Groups `tracks` by normalized artist:title keys."""
         grouped: Dict[str, List[Track]] = {}
 
         for t in tracks:

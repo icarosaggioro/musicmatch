@@ -60,7 +60,7 @@ The fingerprint is a time-smoothed variant of the Haitsma–Kalker robust hash:
 
 Fingerprints are compared by **bit error rate (BER)** at the best frame offset; `similarity = 1 − 2·BER`.
 
-**Why not Chromaprint (`fpcalc`) for deduplication?** It adds a second native binary on Windows and a second decode of every file. Fuzzy matching also needs raw integer fingerprints, which pyacoustid exposes only through `libchromaprint`. `pyacoustid` stays a dependency for a future AcoustID/MusicBrainz metadata lookup. Fingerprints are stored with an algorithm identifier, so the algorithm can be replaced (for example by the Rust engine) without ambiguity.
+**Why not Chromaprint (`fpcalc`) for deduplication?** (Accepted by the project owner, amending issue #28.) It adds a second native binary on Windows and a second decode of every file. Fuzzy matching also needs raw integer fingerprints, which pyacoustid exposes only through `libchromaprint`. `pyacoustid` stays a dependency for a future AcoustID/MusicBrainz metadata lookup. Fingerprints are stored with an algorithm identifier, so the algorithm can be replaced (for example by the Rust engine) without ambiguity.
 
 **Validation** on real recordings re-encoded with FFmpeg (FLAC, MP3 320/128/64 kbps at 22 kHz, AAC 96 kbps, Opus 48 kbps, Vorbis q2, mono, −6 dB plus a 37 ms shift, and 1.3 s of added silence): BER ≤ 0.09 in every case. Arbitrary sub-frame misalignments stayed ≤ 0.11. Different songs measured ≥ 0.47. Different passages of the same song measured ≥ 0.37, except a passage the track itself repeats bar-for-bar (0.30). The hardest synthetic negative is the same backing track with a different melody (≈ 0.30).
 
@@ -71,7 +71,7 @@ Fingerprints are compared by **bit error rate (BER)** at the best frame offset; 
   2. Prefilter: one vectorized XOR/popcount (`np.bitwise_count`) over a mid-track window at ±6 frames, per track, against all of its neighbours.
   3. Verification: full-overlap BER with a ±32-frame offset search.
   4. Union-find clustering. Each group reports its lowest pairwise similarity.
-- Both strategies reuse the ADR 0013 quality heuristic: prefer the available file with the highest bitrate, so lossless masters are kept over lossy copies. Tag-based grouping remains the default, so `/audit duplicates` behaves as before.
+- Both strategies reuse the ADR 0013 quality heuristic: prefer the available file with the highest bitrate, so lossless masters are kept over lossy copies. The audio comes first: by default, analysed tracks are grouped by fingerprint and only tracks without one fall back to tags, so two recordings with equal tags but different audio (live and studio) are never grouped. `--tags` forces tag grouping (issue #28).
 
 ### 7. Storage and lifecycle
 - A `track_analysis` table (one row per track) holds the measurements, fingerprint and waveform blobs, the `analysis_version`, and the **analysis stamp**: the catalog `file_mtime`/`file_size` the analysis describes. Blobs stay out of the hot `SELECT * FROM tracks` paths (`/list`, `/search`, stat-cache).
@@ -91,6 +91,7 @@ Fingerprints are compared by **bit error rate (BER)** at the best frame offset; 
 - **Real metrics**: loudness matches FFmpeg's `ebur128` reference within 0.05 LU on real material. Tempo on steady material is exact to a few hundredths of a BPM. Key detection passes all 24 keys on tonal test material and is stable across codecs.
 - **Duplicates by sound, not by name**: retagged, renamed, transcoded and re-ripped copies are grouped, and the best copy is recommended.
 - **Scans stay fast**: `/scan` never decodes audio. Analysis is opt-in, incremental, parallel and resumable.
+- **Schema migration**: columns and tables are added by the idempotent column list in `schema.apply_schema`; `PRAGMA user_version` was not adopted, since every change so far is additive.
 - **Dependencies**: NumPy (≥ 2.0 for `bitwise_count`) and SciPy become runtime dependencies. FFmpeg is needed for non-WAV formats (already needed for downloads).
 
 ### Known limitations

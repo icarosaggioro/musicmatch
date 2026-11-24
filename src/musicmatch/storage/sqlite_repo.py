@@ -655,6 +655,14 @@ class SQLiteTrackRepository:
         """
         return [dict(row) for row in self.conn.execute(sql, (algorithm,)).fetchall()]
 
+    def get_fingerprinted_track_ids(self, algorithm: str) -> set[str]:
+        """IDs of the tracks with a successful fingerprint of the given algorithm."""
+        sql = """
+        SELECT track_id FROM track_analysis
+        WHERE status = 'OK' AND fingerprint_algorithm = ? AND fingerprint_hash IS NOT NULL;
+        """
+        return {row["track_id"] for row in self.conn.execute(sql, (algorithm,)).fetchall()}
+
     def get_exact_fingerprint_groups(self, algorithm: str) -> List[List[Dict[str, Any]]]:
         """Groups (size >= 2) of tracks sharing an identical fingerprint hash (indexed GROUP BY)."""
         sql = """

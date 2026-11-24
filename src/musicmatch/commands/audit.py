@@ -4,8 +4,8 @@ Follows ADR 0013 and ADR 0014:
 - Diagnostic dashboard for library health, missing files, untagged tracks, degraded bitrates,
   duplicates and acoustic analysis coverage.
 - Side-by-side duplicate recording comparisons with quality-first retention recommendations.
-- Duplicate evidence can be normalized tags (default), exact acoustic fingerprints
-  (--exact) or fuzzy fingerprint similarity across encodes and bitrates (--fuzzy).
+- Duplicate evidence: by default the audio of analysed tracks, and normalized tags for the
+  others. --tags, --exact and --fuzzy (same recording across encodes and bitrates) force one.
 """
 
 from typing import List
@@ -56,7 +56,7 @@ class AuditCommand(Command):
         return True
 
     def _handle_duplicates(self, flags: List[str], ctx: CommandContext) -> bool:
-        strategy = "metadata"
+        strategy = "auto"
         for flag in flags:
             key = flag.lower()
             if key not in _STRATEGY_FLAGS:
@@ -65,7 +65,7 @@ class AuditCommand(Command):
                 return True
             strategy = _STRATEGY_FLAGS[key]
 
-        if strategy != "metadata":
+        if strategy in ("exact", "fuzzy"):
             counts = library_maintenance_service.repo.get_analysis_counts()
             if counts["analyzed"] == 0:
                 ctx.ui.render_warning("Nenhuma faixa possui análise acústica ainda.")
@@ -81,8 +81,8 @@ class AuditCommand(Command):
         groups = library_maintenance_service.find_duplicates(strategy=strategy)
         if not groups:
             ctx.ui.render_success("Nenhuma duplicata detectada na biblioteca.")
-            if strategy == "metadata":
-                ctx.ui.render_info("Dica: /audit duplicates --fuzzy encontra a mesma gravação mesmo com tags diferentes.")
+            if strategy != "fuzzy":
+                ctx.ui.render_info("Dica: após /analyze, /audit duplicates --fuzzy encontra a mesma gravação em outros formatos e bitrates.")
             return True
 
         ctx.ui.render_duplicate_groups(groups)

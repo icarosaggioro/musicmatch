@@ -152,8 +152,10 @@ def test_audit_duplicates_strategies(ctx):
         maintenance.find_duplicates.assert_called_with(strategy="exact")
 
         maintenance.find_duplicates.return_value = []
-        AuditCommand().execute(["duplicates"], ctx)
+        AuditCommand().execute(["duplicates", "--tags"], ctx)
         maintenance.find_duplicates.assert_called_with(strategy="metadata")
+        AuditCommand().execute(["duplicates"], ctx)
+        maintenance.find_duplicates.assert_called_with(strategy="auto")
         assert "--fuzzy" in ctx.ui.render_info.call_args.args[0]
 
         ctx.ui.reset_mock()

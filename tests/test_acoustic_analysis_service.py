@@ -277,7 +277,10 @@ def test_exact_duplicates_ignore_tags_and_respect_duration(tmp_path, repo, libra
     assert cluster.match_type == "EXACT_FINGERPRINT" and cluster.similarity == 1.0
 
     maintenance = LibraryMaintenanceService(repository=repo, analysis_service=service)
-    assert maintenance.find_duplicates() == []  # tags alone cannot see it
+    assert maintenance.find_duplicates(strategy="metadata") == []  # tags alone cannot see it
+    default = maintenance.find_duplicates()  # fingerprint first
+    assert [g.match_type for g in default] == ["EXACT_FINGERPRINT"]
+    assert default[0].signature.startswith("fingerprint:")
     groups = maintenance.find_duplicates(strategy="exact")
     assert len(groups) == 1 and groups[0].match_type == "EXACT_FINGERPRINT"
     assert groups[0].recommended_track_id in cluster.track_ids
@@ -287,6 +290,37 @@ def test_exact_duplicates_ignore_tags_and_respect_duration(tmp_path, repo, libra
     assert report.acoustic_duplicate_groups_count == 1
     with pytest.raises(ValueError):
         maintenance.find_duplicates(strategy="nope")
+
+
+def test_default_duplicates_trust_the_audio_over_the_tags(tmp_path, repo, library, service):
+    """Same artist and title but different audio (e.g. live and studio) are not duplicates."""
+    music = tmp_path / "music"
+    _song_file(music / "studio.wav", seed=11, title="Same Title")
+    _song_file(music / "live.wav", seed=12, title="Same Title", bpm=96.0, tonic=9, mode="minor")
+    library.scan_and_ingest(str(music))
+    maintenance = LibraryMaintenanceService(repository=repo, analysis_service=service)
+
+    # Not analysed yet: the tags are the only evidence.
+    assert [g.match_type for g in maintenance.find_duplicates()] == ["METADATA"]
+
+    service.analyze_library()
+    assert service.find_exact_duplicates() == []
+    assert maintenance.find_duplicates() == []
+    assert len(maintenance.find_duplicates(strategy="metadata")) == 1  # still available on request
+
+
+def test_default_duplicates_fall_back_to_tags_only_for_tracks_without_fingerprint(tmp_path, repo, library, service):
+    music = tmp_path / "music"
+    _song_file(music / "analysed.wav", seed=11, title="Same Title")
+    library.scan_and_ingest(str(music))
+    service.analyze_library()
+    _song_file(music / "new1.wav", seed=13, title="Same Title")
+    _song_file(music / "new2.wav", seed=14, title="Same Title")
+    library.scan_and_ingest(str(music))
+
+    groups = LibraryMaintenanceService(repository=repo, analysis_service=service).find_duplicates()
+    assert [g.match_type for g in groups] == ["METADATA"]
+    assert {Path(t.file_path).name for t in groups[0].tracks} == {"new1.wav", "new2.wav"}
 
 
 @pytest.mark.skipif(not HAS_FFMPEG, reason="FFmpeg not installed")
