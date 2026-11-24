@@ -52,6 +52,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - CI jobs now time out: Quality Gates after 15 minutes and the AI code review after 20 (aligned with its 15-minute review task limit), instead of GitHub's 360-minute default. A test guards that every job declares a timeout.
 
 ### Fixed
+- Every natural-language prompt failed before reaching Gemini: the SDK could not describe the injected `service` parameter of the agent tools. Injected parameters are now hidden from the model, and a test builds the real request.
 - The test suite wrote to real data: the project's `data/musicmatch.db` and `data/staging/`, and the default Managed Library `~/Music/MusicMatch` in the user's home folder. Tests now run in a per-session sandbox, and a guard fails any test that writes outside it (ADR 0021).
 - Background output (e.g. "now playing" on auto-advance) no longer interleaves with multi-line views such as `/queue`: console output is serialized.
 - Files whose name is not valid UTF-8 were silently skipped by `/scan`; they are now reported.

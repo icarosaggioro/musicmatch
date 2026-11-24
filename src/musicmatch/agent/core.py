@@ -1,5 +1,7 @@
 """Agente Monoturno (Single-Turn Agent) com suporte a Function Calling / Tools."""
 
+import functools
+import inspect
 from typing import Any, Callable, Dict, List, Optional
 from google import genai
 from google.genai import types
@@ -19,6 +21,32 @@ Diretrizes:
 5. Após o retorno de uma ferramenta, sintetize o resultado de forma amigável para o usuário.
 """
 
+TOOLS: List[Callable[..., Any]] = [scan_library, search_tracks]
+
+# Dependency-injection parameters of the tools (for tests and other callers). They are not for the
+# model to fill in, and the SDK rejects the whole request when it cannot describe their types.
+_INJECTED_PARAMETERS = frozenset({"service", "player"})
+
+
+def as_agent_tool(func: Callable[..., Any]) -> Callable[..., Any]:
+    """The tool as the model sees it: same name, description and behavior, without injected parameters."""
+    signature = inspect.signature(func)
+    visible = [p for name, p in signature.parameters.items() if name not in _INJECTED_PARAMETERS]
+
+    @functools.wraps(func)
+    def tool(*args: Any, **kwargs: Any) -> Any:
+        return func(*args, **kwargs)
+
+    tool.__signature__ = signature.replace(parameters=visible)
+    tool.__annotations__ = {k: v for k, v in func.__annotations__.items() if k not in _INJECTED_PARAMETERS}
+    tool.__doc__ = "\n".join(
+        line for line in (func.__doc__ or "").splitlines()
+        if not line.strip().startswith(tuple(f"{name}:" for name in _INJECTED_PARAMETERS))
+    )
+    del tool.__wrapped__  # the SDK would follow it back to the full signature
+    return tool
+
+
 class SingleTurnAgent:
     """Agente de ciclo único (Single-Turn) que recebe uma instrução, despacha ferramentas e sintetiza a resposta."""
 
@@ -33,11 +61,8 @@ class SingleTurnAgent:
         self.client = genai.Client(api_key=self.api_key)
         
         # Mapeamento de ferramentas disponíveis
-        self.tools_list: List[Callable[..., Any]] = [scan_library, search_tracks]
-        self.tool_map: Dict[str, Callable[..., Any]] = {
-            "scan_library": scan_library,
-            "search_tracks": search_tracks,
-        }
+        self.tools_list: List[Callable[..., Any]] = [as_agent_tool(f) for f in TOOLS]
+        self.tool_map: Dict[str, Callable[..., Any]] = {tool.__name__: tool for tool in self.tools_list}
 
     def get_model(self) -> str:
         """Retorna o identificador do modelo Gemini atualmente em uso."""
