@@ -308,7 +308,7 @@ def test_exact_duplicates_ignore_tags_and_respect_duration(tmp_path, repo, libra
     assert maintenance.find_duplicates(strategy="metadata") == []  # tags alone cannot see it
     default = maintenance.find_duplicates()  # fingerprint first
     assert [g.match_type for g in default] == ["EXACT_FINGERPRINT"]
-    assert default[0].signature.startswith("fingerprint:")
+    assert default[0].signature.startswith(("fingerprint:", "acoustic:"))  # says what matched
     groups = maintenance.find_duplicates(strategy="exact")
     assert len(groups) == 1 and groups[0].match_type == "EXACT_FINGERPRINT"
     assert groups[0].recommended_track_id in cluster.track_ids
@@ -335,6 +335,33 @@ def test_default_duplicates_trust_the_audio_over_the_tags(tmp_path, repo, librar
     assert service.find_exact_duplicates() == []
     assert maintenance.find_duplicates() == []
     assert len(maintenance.find_duplicates(strategy="metadata")) == 1  # still available on request
+
+
+def test_default_duplicates_include_other_encodes_of_the_same_recording(tmp_path, repo, library, service):
+    """The most common real duplicate: same recording, different encode, so not bit-identical."""
+    music = tmp_path / "music"
+    song = np.asarray(synth_song(seconds=SONG_SECONDS, bpm=118, tonic=4, mode="minor", seed=21))
+    noise = np.random.default_rng(3).standard_normal(song.size) * float(np.sqrt(np.mean(song ** 2))) * 0.02
+    tag_file(write_wav(music / "a.wav", song), title="A", artist="X")
+    tag_file(write_wav(music / "b.wav", song + noise), title="B", artist="Y")
+    tag_file(write_wav(music / "c.wav", song), title="C", artist="Z")
+    _song_file(music / "other.wav", seed=12, title="Other")
+    library.scan_and_ingest(str(music))
+    service.analyze_library()
+    groups = LibraryMaintenanceService(repository=repo, analysis_service=service).find_duplicates()
+    assert [(g.match_type, {Path(t.file_path).name for t in g.tracks}) for g in groups] == [
+        ("FUZZY_FINGERPRINT", {"a.wav", "b.wav", "c.wav"})]  # the exact pair a/c is not listed twice
+
+
+def test_default_duplicates_keep_exact_copies_too_short_for_fuzzy_matching(tmp_path, repo, library, service, monkeypatch):
+    music = tmp_path / "music"
+    _song_file(music / "jingle.wav", seed=11, title="Jingle")
+    shutil.copy(music / "jingle.wav", music / "copy.wav")
+    library.scan_and_ingest(str(music))
+    service.analyze_library()
+    monkeypatch.setattr("musicmatch.services.analysis.MIN_OVERLAP_FRAMES", 10_000)  # nothing is long enough
+    groups = LibraryMaintenanceService(repository=repo, analysis_service=service).find_duplicates()
+    assert [g.match_type for g in groups] == ["EXACT_FINGERPRINT"]
 
 
 def test_default_duplicates_fall_back_to_tags_only_for_tracks_without_fingerprint(tmp_path, repo, library, service):

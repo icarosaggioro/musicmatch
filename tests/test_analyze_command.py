@@ -152,11 +152,22 @@ def test_audit_duplicates_strategies(ctx):
         maintenance.find_duplicates.assert_called_with(strategy="exact")
 
         maintenance.find_duplicates.return_value = []
+        AuditCommand().execute(["duplicates", "--exact"], ctx)
+        assert "--fuzzy" in ctx.ui.render_info.call_args.args[0]
         AuditCommand().execute(["duplicates", "--tags"], ctx)
+        assert "--fuzzy" in ctx.ui.render_info.call_args.args[0]
         maintenance.find_duplicates.assert_called_with(strategy="metadata")
         AuditCommand().execute(["duplicates"], ctx)
         maintenance.find_duplicates.assert_called_with(strategy="auto")
-        assert "--fuzzy" in ctx.ui.render_info.call_args.args[0]
+        assert "por tags" in "".join(c.args[0] for c in ctx.ui.render_info.call_args_list)
+
+        ctx.ui.reset_mock()  # not analysed yet: the default still works, by tags
+        maintenance.repo.get_analysis_counts.return_value = {"available": 2, "analyzed": 0, "failed": 0, "pending": 2}
+        maintenance.find_duplicates.return_value = [group]
+        AuditCommand().execute(["duplicates"], ctx)
+        maintenance.find_duplicates.assert_called_with(strategy="auto")
+        ctx.ui.render_duplicate_groups.assert_called_once_with([group])
+        assert "por tags" in ctx.ui.render_info.call_args_list[0].args[0]
 
         ctx.ui.reset_mock()
         AuditCommand().execute(["duplicates", "--bogus"], ctx)

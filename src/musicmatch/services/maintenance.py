@@ -122,8 +122,8 @@ class LibraryMaintenanceService:
         """Identifies duplicate groups and recommends the highest-quality copy to keep.
 
         Strategies:
-        - "auto" (default): the audio is the evidence for analysed tracks (as "exact"); tags are
-          used only among tracks without a fingerprint. Tracks whose audio differs are never
+        - "auto" (default): the audio is the evidence for analysed tracks (as "fuzzy", plus
+          identical copies too short for it); tags are used only among tracks without a fingerprint. Tracks whose audio differs are never
           grouped because of equal tags (a live and a studio version are not duplicates).
         - "metadata": normalized artist + title (works without analysis, misses retagged copies).
         - "exact": identical acoustic fingerprint (same decoded audio, any tags/container).
@@ -134,7 +134,10 @@ class LibraryMaintenanceService:
         if strategy == "auto":
             fingerprinted = self.repo.get_fingerprinted_track_ids(FINGERPRINT_ALGORITHM)
             without_print = [t for t in self.repo.get_all_tracks() if t.id not in fingerprinted]
-            return self.find_duplicates("exact") + self._find_metadata_duplicates(without_print)
+            acoustic = self.find_duplicates("fuzzy")
+            listed = {t.id for group in acoustic for t in group.tracks}
+            short = [g for g in self.find_duplicates("exact") if not {t.id for t in g.tracks} <= listed]
+            return acoustic + short + self._find_metadata_duplicates(without_print)
         if strategy == "exact":
             clusters = self.analysis_service.find_exact_duplicates()
         elif strategy == "fuzzy":

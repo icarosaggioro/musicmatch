@@ -2,6 +2,7 @@
 
 import shutil
 import subprocess
+import time
 
 import numpy as np
 import pytest
@@ -61,6 +62,30 @@ def test_noise_and_resampling_are_tolerated(song):
 
     as_22k = resample_poly(np.asarray(song), 1, 2)
     assert compare_fingerprints(_fp(song), _fp(as_22k, 22050)).bit_error_rate < 0.1
+
+
+def test_low_level_noise_at_40_db_snr_is_grouped_and_unrelated_signals_are_not(song):
+    signal = np.asarray(song, dtype=np.float64)
+    rms = float(np.sqrt(np.mean(signal ** 2)))
+    noisy = signal + np.random.default_rng(7).standard_normal(signal.size) * rms * 10 ** (-40 / 20)
+    unrelated = synth_song(seconds=30, bpm=96, tonic=9, mode="major", seed=77)
+    matches = find_similar_pairs([_fp(signal), _fp(noisy), _fp(unrelated)], [30.0, 30.0, 30.0])
+    assert [(m.index_a, m.index_b) for m in matches] == [(0, 1)]
+
+
+def test_matching_a_library_of_ten_thousand_tracks_stays_under_two_minutes():
+    """Issue #30: realistic track lengths (mean 230 s, deviation 60 s), full-size fingerprints."""
+    rng = np.random.default_rng(30)
+    count, frames = 10_000, 1_290
+    prints = [rng.integers(0, 2 ** 32, frames, dtype=np.uint32) for _ in range(count)]
+    prints[-1] = prints[0].copy()  # one real duplicate to find among them
+    durations = np.clip(rng.normal(230, 60, count), 45, 900)
+    durations[-1] = durations[0]
+    started = time.perf_counter()
+    matches = find_similar_pairs(prints, durations)
+    elapsed = time.perf_counter() - started
+    assert [(m.index_a, m.index_b) for m in matches] == [(0, count - 1)]
+    assert elapsed < 120, f"took {elapsed:.0f} s"
 
 
 def test_different_songs_are_far_apart(song):

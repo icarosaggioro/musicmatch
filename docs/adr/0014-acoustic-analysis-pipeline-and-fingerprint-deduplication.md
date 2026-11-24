@@ -71,7 +71,7 @@ Fingerprints are compared by **bit error rate (BER)** at the best frame offset; 
   2. Prefilter: one vectorized XOR/popcount (`np.bitwise_count`) over a mid-track window at ±6 frames, per track, against all of its neighbours.
   3. Verification: full-overlap BER with a ±32-frame offset search.
   4. Union-find clustering. Each group reports its lowest pairwise similarity.
-- Both strategies reuse the ADR 0013 quality heuristic: prefer the available file with the highest bitrate, so lossless masters are kept over lossy copies. The audio comes first: by default, analysed tracks are grouped by fingerprint and only tracks without one fall back to tags, so two recordings with equal tags but different audio (live and studio) are never grouped. `--tags` forces tag grouping (issue #28).
+- Both strategies reuse the ADR 0013 quality heuristic: prefer the available file with the highest bitrate, so lossless masters are kept over lossy copies. The audio comes first: by default, analysed tracks are grouped by fuzzy fingerprint matching (plus identical copies too short for it) and only tracks without one fall back to tags, so two recordings with equal tags but different audio (live and studio) are never grouped. `--tags` forces tag grouping (issue #28).
 
 ### 7. Storage and lifecycle
 - A `track_analysis` table (one row per track) holds the measurements, fingerprint and waveform blobs, the `analysis_version`, and the **analysis stamp**: the catalog `file_mtime`/`file_size` the analysis describes. Blobs stay out of the hot `SELECT * FROM tracks` paths (`/list`, `/search`, stat-cache).
@@ -99,5 +99,6 @@ Fingerprints are compared by **bit error rate (BER)** at the best frame offset; 
 - Tempo has the usual metrical-level ambiguity: a 150/174 BPM track whose kick marks every other beat may read as 75/87 BPM. librosa shows the same behaviour on the same material.
 - Key profiles assume Western tonal music. Relative major/minor keys (same key signature) can be confused on weakly tonal material.
 - The fingerprint covers the first 120 s, combined with a duration check. Two edits that share their first two minutes and differ in length by less than the duration tolerance would be grouped.
+- Fuzzy matching of 10,000 random full-length fingerprints with realistic durations takes about 25 s on a desktop CPU; the accepted limit for now is 2 minutes (issue #30). The worst case, every track with the same duration, took over 8 minutes: optimizing the prefilter is left for later.
 - Fuzzy matching costs O(N · k), where k is the number of tracks with a similar duration. That is fine for the targeted 10,000–100,000 tracks; an inverted index over sub-fingerprints is the next step beyond that.
 - Any write to a file (including `/retag`) changes its stamp and schedules a re-analysis. This is safe by default at the cost of one extra decode.

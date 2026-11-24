@@ -65,24 +65,25 @@ class AuditCommand(Command):
                 return True
             strategy = _STRATEGY_FLAGS[key]
 
-        if strategy in ("exact", "fuzzy"):
+        if strategy != "metadata":
             counts = library_maintenance_service.repo.get_analysis_counts()
-            if counts["analyzed"] == 0:
+            if counts["analyzed"] == 0 and strategy == "auto":
+                ctx.ui.render_info("Nenhuma faixa foi analisada ainda: comparando por tags. Rode /analyze para comparar o áudio.")
+            elif counts["analyzed"] == 0:
                 ctx.ui.render_warning("Nenhuma faixa possui análise acústica ainda.")
                 ctx.ui.render_info("Rode /analyze para calcular os fingerprints e tente novamente.")
                 return True
-            if counts["pending"]:
-                ctx.ui.render_info(
-                    f"{counts['pending']} faixa(s) ainda sem análise acústica ficam fora desta comparação (/analyze)."
-                )
-            if strategy == "fuzzy":
+            elif counts["pending"]:
+                how = "são comparadas só por tags" if strategy == "auto" else "ficam fora desta comparação"
+                ctx.ui.render_info(f"{counts['pending']} faixa(s) ainda sem análise acústica {how} (/analyze).")
+            if strategy == "fuzzy" or (strategy == "auto" and counts["analyzed"]):
                 ctx.ui.render_info("Comparando fingerprints acústicos (tolerante a reencodes e bitrates)...")
 
         groups = library_maintenance_service.find_duplicates(strategy=strategy)
         if not groups:
             ctx.ui.render_success("Nenhuma duplicata detectada na biblioteca.")
-            if strategy != "fuzzy":
-                ctx.ui.render_info("Dica: após /analyze, /audit duplicates --fuzzy encontra a mesma gravação em outros formatos e bitrates.")
+            if strategy in ("metadata", "exact"):
+                ctx.ui.render_info("Dica: /audit duplicates --fuzzy encontra a mesma gravação mesmo com tags ou formatos diferentes.")
             return True
 
         ctx.ui.render_duplicate_groups(groups)
