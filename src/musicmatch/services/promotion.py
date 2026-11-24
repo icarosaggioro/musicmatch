@@ -15,10 +15,13 @@ import shutil
 from typing import List, Optional, Union
 
 import mediafile
+from musicmatch.diagnostics.logging_setup import log_unexpected
+from musicmatch.domain.issues import IssueKind
 
 from musicmatch.domain.models import Track
 from musicmatch.domain.staging import DownloadSessionManifest, PromotionResult, StagedTrack
 from musicmatch.services.downloader import AudioDownloaderService, audio_downloader_service
+from musicmatch.services.issues import report_issue
 from musicmatch.services.location import LibraryLocationManager, library_location_manager
 from musicmatch.storage.sqlite_repo import SQLiteTrackRepository
 
@@ -211,8 +214,13 @@ class TrackPromotionService:
             if track_number is not None:
                 mf.track = track_number
             mf.save()
-        except Exception:
-            pass
+        except (mediafile.UnreadableFileError, OSError) as exc:  # the file is promoted anyway
+            report_issue(IssueKind.TAGS_NOT_WRITTEN, str(target_path).replace("\\", "/"),
+                         f"O arquivo foi promovido, mas as tags não foram gravadas: {exc}",
+                         subject_type="file", subject_label=f"{final_artist} - {final_title}", source="promotion",
+                         details={"sugestão": f"Use /retag <id> --artist ... --title ... para gravá-las."})
+        except Exception as exc:  # unforeseen: developer log
+            log_unexpected(f"Unexpected error writing tags to {target_path}", exc)
 
         # Index into SQLite catalog
         stat = target_path.stat()

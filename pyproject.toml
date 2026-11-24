@@ -22,15 +22,22 @@ requires-python = ">=3.14.6"
 authors = [
     { name = "Icaro Saggioro", email = "icaro.saggioro@gmail.com" }
 ]
-keywords = ["audio", "ai-agents", "mp3", "dsp", "music", "gemini"]
+keywords = ["audio", "ai-agents", "mp3", "dsp", "music", "gemini", "loudness", "fingerprint", "player"]
 
 # Required runtime dependencies
 dependencies = [
     "google-genai>=0.1.0",
     "mediafile>=0.17.0",
+    # Audio playback (ADR 0015): self-contained wheels with WASAPI/DirectSound/WinMM,
+    # Core Audio and PulseAudio/ALSA/JACK backends, plus FFmpeg-free MP3/FLAC/Vorbis/WAV decoders.
+    "miniaudio>=1.61",
+    # DSP engine (ADR 0014): vectorized loudness/tempo/key/fingerprint. numpy>=2.0 provides
+    # np.bitwise_count (popcount) used for fingerprint bit-error rates.
+    "numpy>=2.0.0",
     "pyacoustid>=1.3.1",
     "pydantic>=2.0.0",
     "python-dotenv>=1.0.0",
+    "scipy>=1.14.0",
     "send2trash>=1.8.0",
     "yt-dlp>=2025.01.01",
 ]

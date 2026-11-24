@@ -2,7 +2,8 @@
 
 Implements ADR 0009 and ADR 0013:
 - Diagnostic library health audit (missing files, untagged tracks, degraded bitrates, duplicates).
-- Quality-first duplicate detection recommending preservation of highest-fidelity bitstreams.
+- Quality-first duplicate detection recommending preservation of highest-fidelity bitstreams,
+  grouped by normalized tags or by acoustic fingerprint (exact / fuzzy, ADR 0014).
 - Non-destructive unindexing (/unindex) removing catalog metadata while keeping files intact.
 - Safe physical file deletion (/delete) routing audio files to the host OS Recycle Bin via send2trash.
 - Permanent purging of missing records (/prune).
@@ -19,13 +20,16 @@ from typing import Any, Dict, List, Literal, Optional, Set, Tuple
 import mediafile
 import send2trash
 
+from musicmatch.domain.analysis import AcousticDuplicateCluster
 from musicmatch.domain.maintenance import (
     DuplicateGroup,
     ImportResult,
     LibraryAuditReport,
     ReorganizeResult,
 )
+from musicmatch.domain.issues import IssueKind
 from musicmatch.domain.models import Track
+from musicmatch.services.issues import report_issue
 from musicmatch.services.location import LibraryLocationManager, library_location_manager
 from musicmatch.services.promotion import sanitize_filename_component
 from musicmatch.storage.sqlite_repo import SQLiteTrackRepository
@@ -38,9 +42,32 @@ class LibraryMaintenanceService:
         self,
         repository: Optional[SQLiteTrackRepository] = None,
         location_manager: Optional[LibraryLocationManager] = None,
+        analysis_service: Optional[Any] = None,
     ) -> None:
-        self.repo = repository or SQLiteTrackRepository()
+        self._repo = repository
         self.location_manager = location_manager or library_location_manager
+        self._analysis_service = analysis_service
+
+    @property
+    def repo(self) -> SQLiteTrackRepository:
+        """Opened on first use, not at import: importing a module must never create files (the
+        process-wide instance below would otherwise open the catalog as soon as it is imported)."""
+        if self._repo is None:
+            self._repo = SQLiteTrackRepository()
+        return self._repo
+
+    @repo.setter
+    def repo(self, value: SQLiteTrackRepository) -> None:
+        self._repo = value
+
+    @property
+    def analysis_service(self) -> Any:
+        """AcousticAnalysisService bound to this repository (created lazily)."""
+        if self._analysis_service is None:
+            from musicmatch.services.analysis import AcousticAnalysisService
+
+            self._analysis_service = AcousticAnalysisService(repository=self.repo)
+        return self._analysis_service
 
     def audit_library(self) -> LibraryAuditReport:
         """Calculates comprehensive health and integrity metrics across all registered tracks."""
@@ -72,6 +99,11 @@ class LibraryMaintenanceService:
         missing_count = len(missing_tracks)
         available_count = total_tracks - missing_count
 
+        # Acoustic coverage and exact fingerprint duplicates are single indexed queries,
+        # cheap enough for the dashboard; fuzzy matching stays on /audit duplicates --fuzzy.
+        analysis_counts = self.repo.get_analysis_counts()
+        acoustic_groups = self.analysis_service.find_exact_duplicates()
+
         return LibraryAuditReport(
             total_tracks=total_tracks,
             available_tracks=max(0, available_count),
@@ -80,10 +112,65 @@ class LibraryMaintenanceService:
             low_bitrate_tracks=low_bitrate_count,
             duplicate_groups_count=len(duplicates),
             missing_sample=missing_tracks[:5],
+            analyzed_tracks=analysis_counts["analyzed"],
+            pending_analysis_tracks=analysis_counts["pending"],
+            acoustic_duplicate_groups_count=len(acoustic_groups),
         )
 
-    def find_duplicates(self) -> List[DuplicateGroup]:
-        """Identifies groups of duplicate tracks using normalized semantic keys and quality heuristics."""
+    def find_duplicates(self, strategy: Literal["metadata", "exact", "fuzzy"] = "metadata") -> List[DuplicateGroup]:
+        """Identifies duplicate groups and recommends the highest-quality copy to keep.
+
+        Strategies:
+        - "metadata": normalized artist + title (works without analysis, misses retagged copies).
+        - "exact": identical acoustic fingerprint (same decoded audio, any tags/container).
+        - "fuzzy": fingerprint similarity; finds the same recording across encodes/bitrates.
+        """
+        if strategy == "metadata":
+            return self._find_metadata_duplicates()
+        if strategy == "exact":
+            clusters = self.analysis_service.find_exact_duplicates()
+        elif strategy == "fuzzy":
+            clusters = self.analysis_service.find_fuzzy_duplicates()
+        else:
+            raise ValueError(f"Unknown duplicate strategy: {strategy}")
+        return [group for group in (self._cluster_to_group(c) for c in clusters) if group is not None]
+
+    def _cluster_to_group(self, cluster: AcousticDuplicateCluster) -> Optional[DuplicateGroup]:
+        tracks = [t for t in (self.repo.get_track(tid) for tid in cluster.track_ids) if t is not None]
+        if len(tracks) < 2:
+            return None
+        recommended, reason = self._recommend(tracks)
+        return DuplicateGroup(
+            signature=cluster.signature,
+            tracks=tracks,
+            recommended_track_id=recommended.id,
+            recommendation_reason=reason,
+            match_type=cluster.match_type,
+            similarity=cluster.similarity,
+        )
+
+    @staticmethod
+    def _recommend(group_tracks: List[Track]) -> Tuple[Track, str]:
+        """Quality heuristic: prefer AVAILABLE tracks, then highest bitrate, then longer duration."""
+
+        def sort_key(t: Track) -> Tuple[int, int, float]:
+            avail = 1 if t.status == "AVAILABLE" and os.path.exists(t.file_path) else 0
+            bitrate = t.bitrate_kbps or 0
+            dur = t.duration_seconds or 0.0
+            return (avail, bitrate, dur)
+
+        sorted_candidates = sorted(group_tracks, key=sort_key, reverse=True)
+        recommended = sorted_candidates[0]
+        other = sorted_candidates[1]
+        reason = (
+            f"Highest fidelity bitstream ({recommended.bitrate_kbps} kbps vs {other.bitrate_kbps} kbps)"
+            if recommended.bitrate_kbps != other.bitrate_kbps
+            else f"Accessible file on disk with {recommended.bitrate_kbps} kbps"
+        )
+        return recommended, reason
+
+    def _find_metadata_duplicates(self) -> List[DuplicateGroup]:
+        """Groups tracks by normalized artist:title keys."""
         tracks = self.repo.get_all_tracks()
         grouped: Dict[str, List[Track]] = {}
 
@@ -100,22 +187,7 @@ class LibraryMaintenanceService:
             if len(group_tracks) < 2:
                 continue
 
-            # Quality heuristic: prefer AVAILABLE tracks, then highest bitrate, then longer duration
-            def sort_key(t: Track) -> Tuple[int, int, float]:
-                avail = 1 if t.status == "AVAILABLE" and os.path.exists(t.file_path) else 0
-                bitrate = t.bitrate_kbps or 0
-                dur = t.duration_seconds or 0.0
-                return (avail, bitrate, dur)
-
-            sorted_candidates = sorted(group_tracks, key=sort_key, reverse=True)
-            recommended = sorted_candidates[0]
-            other = sorted_candidates[1]
-
-            reason = (
-                f"Highest fidelity bitstream ({recommended.bitrate_kbps} kbps vs {other.bitrate_kbps} kbps)"
-                if recommended.bitrate_kbps != other.bitrate_kbps
-                else f"Accessible file on disk with {recommended.bitrate_kbps} kbps"
-            )
+            recommended, reason = self._recommend(group_tracks)
 
             duplicate_groups.append(
                 DuplicateGroup(
@@ -153,6 +225,10 @@ class LibraryMaintenanceService:
                     send2trash.send2trash(file_path)
                 except Exception as e:
                     errors.append(f"Failed to move '{file_path}' to Recycle Bin: {e}")
+                    report_issue(IssueKind.TRASH_FAILED, track.id, f"Não foi possível mover para a Lixeira: {e}",
+                                 subject_type="track", subject_label=f"{track.artist} - {track.title}",
+                                 source="library", details={"arquivo": file_path,
+                                                            "sugestão": "Feche programas que usam o arquivo e repita."})
                     continue
 
             # Cascade database removal
@@ -336,15 +412,15 @@ class LibraryMaintenanceService:
 
                 shutil.move(str(p), str(canonical_path))
                 old_id = track.id
-                track.file_path = str(canonical_path.resolve()).replace("\\", "/"),
+                track.file_path = str(canonical_path.resolve()).replace("\\", "/")
                 track.id = Track.generate_id(str(canonical_path))
                 stat = canonical_path.stat()
                 track.file_mtime = stat.st_mtime
                 track.file_size = stat.st_size
 
-                # Re-index
-                self.repo.delete_track(old_id)
-                self.repo.insert_track(track)
+                # Re-key the existing record in place (same path as Fast Relocation): the
+                # catalog entry, its metadata and its acoustic analysis follow the moved file.
+                self.repo.relocate_track(old_id, track)
                 realigned_count += 1
             except Exception as e:
                 errors.append(f"Error relocating '{p}': {e}")

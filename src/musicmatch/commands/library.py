@@ -67,6 +67,7 @@ class LibraryCommand(Command):
             if isinstance(stats, dict):
                 status_info["Duração Total"] = f"{stats.get('total_duration_hours', 0)} horas"
                 status_info["BPM Médio"] = f"{stats.get('avg_bpm', 0)}"
+                status_info["Reproduções Totais"] = f"{stats.get('total_plays', 0)}"
                 db_size = stats.get("db_size_kb", 0)
                 if isinstance(db_size, (int, float)) and db_size > 0:
                     status_info["Tamanho do Arquivo .db"] = f"{db_size} KB"

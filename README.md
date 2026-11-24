@@ -54,6 +54,10 @@ The project follows a didactic, incremental **Walking Skeleton** strategy: estab
 ## 🛠️ Technology Stack
 
 - **Language & Runtime**: Python 3.14.6 or higher
+- **Diagnostics (ADR 0019)**: unforeseen errors from any thread are written with their traceback to a rotating developer log (`data/logs/musicmatch.log`) and shown as one line with a reference, and the session continues (only a damaged database or exhausted memory ends it, gracefully); foreseen resource problems go to a persistent, de-duplicated Issue register fed through a single, non-blocking writer thread
+- **Playback Persistence & Play Counts (ADR 0016)**: the queue (played tracks included), the paused position and the volume survive restarts; per-track and total play counters increase once a track has actually been heard for 60 seconds
+- **Audio Playback (ADR 0015)**: `miniaudio` output (WASAPI/DirectSound on Windows, Core Audio on macOS, PulseAudio/ALSA/JACK on Linux) fed by the FFmpeg decoding pipeline, with an in-memory play queue
+- **Acoustic Analysis (ADR 0014)**: `numpy` + `scipy` DSP engine (EBU R128 loudness, tempo, musical key, acoustic fingerprint) fed by a single streaming FFmpeg decode per file
 - **Audio Metadata & Ingestion**: `mediafile` (unified tag parsing across MP3, FLAC, M4A, OGG, WAV) and `pyacoustid` (Chromaprint acoustic fingerprinting)
 - **AI SDK**: `google-genai` (Gemini 3.6 Flash with Function Calling and Structured Outputs)
 - **Domain Modeling & Contracts**: `pydantic` V2 (strict runtime data integrity and automatic JSON Schema generation)
@@ -69,6 +73,8 @@ The project follows a didactic, incremental **Walking Skeleton** strategy: estab
 
 ### Prerequisites
 - **Python 3.14.6 or higher** installed.
+- **FFmpeg** on the `PATH` (or `MUSICMATCH_FFMPEG_PATH` in `.env`) — required for downloads and for playing/analysing M4A/AAC, Opus, WMA and AIFF files. Without it, MP3, FLAC, OGG and WAV still play and are analysed through the decoders bundled with `miniaudio`.
+- An audio output device. No extra audio libraries are needed on Windows, macOS or Linux. On headless machines, set `MUSICMATCH_AUDIO_BACKEND=null` to run playback without sound.
 - A **Google AI Studio** Gemini API Key — obtain for free at [aistudio.google.com](https://aistudio.google.com/).
 
 ### 1. Clone the Repository
@@ -121,7 +127,19 @@ MusicMatch features fast administrative commands prefixed with `/` that execute 
 | `/status` | Shows the active Gemini model, total indexed tracks, and SQLite storage stats. |
 | `/list [n]` | Lists tracks from the library with 20 items/page and interactive cancellation. |
 | `/search <query>` | Performs instantaneous full-text search across the library using SQLite FTS5. |
-| `/scan <path>` | Triggers the audio scanner directly (e.g., `/scan C:/Music`). |
+| `/scan <path>` | Triggers the audio scanner directly (e.g., `/scan C:/Music`). Metadata only — fast and idempotent. |
+| `/analyze [path] [--force] [--limit N] [--workers N]` | Measures loudness (LUFS/LRA), BPM, musical key (Camelot) and the acoustic fingerprint of pending tracks; incremental and resumable (`Ctrl+C` keeps finished work). `/analyze status` and `/analyze show <id>` inspect results. |
+| `/play [id]` | Plays a track now. `/play` alone continues a paused track, even after restarting MusicMatch, or plays the queue. IDs can be shortened to a unique prefix, e.g. `/play 3fa2b9`; `/list` and `/search` show them. |
+| `/pause` · `/stop` · `/next` · `/volume [0-100]` | `/pause` keeps the exact position, also across restarts (run it again or `/play` to continue); `/stop` returns to the first track of the queue; `/next` skips; volume uses a cubic taper and shows the current value without an argument. |
+| `/queue` · `/queue-play` · `/queue-add <id>` · `/queue-add-last <id>` · `/queue-remove <id \| #pos>` · `/queue-clear` | Persistent play queue: show it (▶ current, ✓ already played), play it, add a track to play next, append to the end, remove every copy of a track or one entry by position, clear. Played tracks stay in the queue until you remove them, and the same track may be queued several times. Unavailable files are flagged and skipped with a notice. Every start prints a one-line queue status. Every queue command is named `/queue-<action>` (`/play queue` still works as the former spelling of `/queue-play`). |
+| `/queue-repeat [on\|off]` · `/queue-consume [on\|off]` | Queue modes (ADR 0017), kept across restarts; no argument toggles. Repeat plays the whole queue again after the last track. Consume removes each track from the queue once it has been played (same rule as the play counter: 60 s heard, or the whole track) and playback moves on; tracks skipped early, stopped or unavailable stay. The two modes exclude each other. |
+| `/queue-shuffle` · `/queue-sort <title\|genre\|artist\|album>` | Reorder the whole queue, also during playback: shuffle (the current track goes to the top and everything else follows), or sort by track name, genre then track name, artist then track name, or album then track number (the current track keeps playing at its new position). `/queue` always shows the real play order. |
+| `/playlist [name]` · `/playlist-save <name>` · `/playlist-load <name> [--append]` · `/playlist-rename <name> <new name>` | Saved playlists (ADR 0018): list them or show one; save the play queue as a playlist; fill the queue with a playlist (replaces the queue after asking, or `--append`s to it); rename. Names ignore case and accents and can be shortened to a unique prefix. |
+| `/playlist-remove <name> <id \| #pos>` | Take tracks out of a playlist: `<id>` removes every occurrence of the track, `#<position>` only the entry at that position (as numbered by `/playlist <name>`). The tracks stay in the library. |
+| `/playlist-delete <name>` · `/playlist-delete-with-tracks <name>` | Delete a playlist and keep its tracks, or delete it and move its tracks' files to the Recycle Bin (unindexing them) behind the same count-verification gate as `/delete`. |
+| `/playlist-import <file.m3u\|.m3u8> [name]` · `/playlist-export <name> [file \| folder] [--relative]` | Exchange playlists with other players as M3U/M3U8. Import matches entries by path, or by artist/title/duration for playlists from another machine, and tells you which folders to `/scan` for the rest. Export writes UTF-8 `.m3u8` to `<library>/Playlists` by default, with absolute or relative paths. |
+| `/issue [id \| --dismissed \| --all]` · `/issue-dismiss <id... \| --all>` · `/issue-delete <id... \| --dismissed \| --all>` | Issue register (ADR 0019): problems found with your files and environment (corrupt, empty or unreadable files, names that break on Windows, missing tracks, empty playlists, no audio device…) are kept in the database, one per problem, and announced with a single summary line. List them, inspect one, dismiss (stop being told; stays silenced) or delete (forgotten; comes back if it happens again). |
+| `/audit duplicates [--tags \| --exact \| --fuzzy]` | Finds duplicates by tags (default), identical audio (`--exact`) or the same recording across encodes and bitrates (`--fuzzy`), recommending the highest-fidelity copy. |
 | `/clear` | Clears the terminal screen. |
 | `/exit` | Exits the application (*ergonomic aliases*: `sair`, `exit`, `quit`, `q`). |
 
@@ -168,6 +186,8 @@ pip install pytest-cov
 pytest --cov=musicmatch --cov-report=term-missing
 ```
 
+**Tests never touch real data (ADR 0021).** Each session runs in a temporary sandbox (catalog database, staging area, logs, library config and home folder, so `~/Music/MusicMatch` too), whatever your `.env` says. A guard fails any test that writes to the project tree, to your real `~/Music/MusicMatch`, or to the default catalog instead of its own in-memory database or `tmp_path`, and names the files it touched.
+
 ---
 
 ## 📚 Documentation & Architecture Decision Records (ADRs)
@@ -193,6 +213,14 @@ All architectural decisions and research references are persisted and versioned 
   - [ADR 0011](docs/adr/0011-web-ingestion-two-stage-staging-and-managed-library-taxonomy.md): Web Ingestion Pipeline, Two-Stage Staging Architecture, and Managed Library Taxonomy.
   - [ADR 0012](docs/adr/0012-managed-library-governance-resolution-and-safeguards.md): Managed Library Location Governance, Cross-Platform Resolution, and Write-Access Safeguards.
   - [ADR 0013](docs/adr/0013-library-maintenance-consolidation-and-deletion-safeguards.md): Library Maintenance, Consolidation Imports, and Two-Tier Deletion Safeguards.
+  - [ADR 0014](docs/adr/0014-acoustic-analysis-pipeline-and-fingerprint-deduplication.md): Acoustic Analysis Pipeline, Real Signal Metrics, and Fingerprint-Based Duplicate Detection.
+  - [ADR 0015](docs/adr/0015-cross-platform-audio-playback-engine-and-play-queue.md): Cross-Platform Audio Playback Engine, Output Library Selection, and Play Queue.
+  - [ADR 0016](docs/adr/0016-persistent-play-queue-resume-and-play-counting.md): Persistent Play Queue, Resume Point, and Play Counting.
+  - [ADR 0017](docs/adr/0017-queue-playback-modes-repeat-consume-shuffle-and-sort.md): Queue Playback Modes (Repeat, Consume, Shuffle, Sort) and the `/queue-<action>` Command Family.
+  - [ADR 0018](docs/adr/0018-saved-playlists-m3u-import-export-and-playlist-commands.md): Saved Playlists, M3U Import/Export, and the `/playlist-<action>` Command Family.
+  - [ADR 0019](docs/adr/0019-diagnostics-developer-log-issue-register-and-thread-safe-reporting.md): Diagnostics: Developer Log, Issue Register, and Thread-Safe Reporting.
+  - [ADR 0020](docs/adr/0020-issue-auto-resolution-and-remedies.md): Issue Auto-Resolution and Remedies (proposed).
+  - [ADR 0021](docs/adr/0021-test-isolation-session-sandbox-and-filesystem-guard.md): Test Isolation: Session Sandbox, Side-Effect-Free Imports, and a Filesystem Guard.
 
 ---
 

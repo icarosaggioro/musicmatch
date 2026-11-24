@@ -29,8 +29,9 @@ class AudioDownloaderService:
     """Orchestrates web audio search, safe downloading, and staging sessions."""
 
     def __init__(self, staging_dir: Optional[Path] = None) -> None:
+        # Resolved now, created on first use (session creation): importing the module, which
+        # builds the process-wide instance, must never create folders.
         self.staging_dir = (staging_dir or Path(settings.STAGING_DIR)).resolve()
-        self.staging_dir.mkdir(parents=True, exist_ok=True)
 
     def _generate_session_id(self) -> str:
         """Generates a timestamped unique session ID."""
