@@ -18,7 +18,7 @@ import mediafile
 from musicmatch.diagnostics.logging_setup import log_unexpected
 from musicmatch.domain.issues import IssueKind
 
-from musicmatch.domain.models import Track
+from musicmatch.domain.models import DEFAULT_BPM, Track
 from musicmatch.domain.staging import DownloadSessionManifest, PromotionResult, StagedTrack
 from musicmatch.services.downloader import AudioDownloaderService, audio_downloader_service
 from musicmatch.services.issues import report_issue
@@ -232,7 +232,8 @@ class TrackPromotionService:
             genre="Unknown",
             duration_seconds=target_track.duration_seconds,
             bitrate_kbps=320,
-            bpm=120.0,
+            bpm=DEFAULT_BPM,
+            bpm_source="default",
             file_path=str(target_path.resolve()).replace("\\", "/"),
             file_mtime=stat.st_mtime,
             file_size=stat.st_size,

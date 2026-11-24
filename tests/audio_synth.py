@@ -139,7 +139,8 @@ def silence(seconds: float, sr: int = SR) -> np.ndarray:
     return np.zeros(int(seconds * sr))
 
 
-def tag_file(path: Path, title: str, artist: str, album: str = "Album", genre: Optional[str] = "Pop") -> Path:
+def tag_file(path: Path, title: str, artist: str, album: str = "Album", genre: Optional[str] = "Pop",
+             bpm: Optional[int] = None) -> Path:
     import mediafile
 
     mf = mediafile.MediaFile(str(path))
@@ -147,6 +148,8 @@ def tag_file(path: Path, title: str, artist: str, album: str = "Album", genre: O
     mf.artist = artist
     mf.album = album
     mf.genre = genre
+    if bpm is not None:
+        mf.bpm = bpm
     mf.save()
     return path
 

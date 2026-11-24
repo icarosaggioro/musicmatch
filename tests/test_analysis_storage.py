@@ -50,10 +50,12 @@ def test_existing_database_is_migrated_in_place(tmp_path):
     repo = SQLiteTrackRepository(db_path=db_path)
     try:
         columns = {row["name"] for row in repo.conn.execute("PRAGMA table_info(tracks);")}
-        assert "musical_key" in columns
+        assert {"musical_key", "bpm_source"} <= columns
         assert repo.conn.execute("SELECT name FROM sqlite_master WHERE name = 'track_analysis'").fetchone()
         old = repo.get_track("trk_old")
         assert old.title == "Old" and old.musical_key is None
+        assert (old.bpm, old.duration_seconds, old.bitrate_kbps, old.file_path) == (120, 100, 192, "/music/old.mp3")
+        assert old.bpm_source is None  # unknown
         assert [t.id for t in repo.get_tracks_pending_analysis()] == ["trk_old"]
     finally:
         repo.close()
@@ -83,6 +85,34 @@ def test_low_confidence_tempo_keeps_the_tag_bpm_and_orphans_are_ignored():
     assert repo.get_track("trk_1").bpm == 87.0
     assert repo.get_track("trk_1").lufs == -8.5
     assert repo.get_analysis("trk_deleted") is None
+
+
+@pytest.mark.parametrize("source,before,after,after_source", [
+    ("tag", 77.0, 77.0, "tag"),         # tags are never overwritten
+    ("tag", 120.0, 120.0, "tag"),       # not even when the tag equals the placeholder
+    ("default", 120.0, 128.0, "dsp"),
+    ("dsp", 140.0, 128.0, "dsp"),       # a newer measurement replaces an older one
+    (None, 120.0, 128.0, "dsp"),        # cataloged before bpm_source existed, at the placeholder
+    (None, 77.0, 77.0, None),           # cataloged before bpm_source existed, from a tag
+])
+def test_measured_bpm_only_replaces_values_that_are_not_tags(source, before, after, after_source):
+    repo = SQLiteTrackRepository(db_path=":memory:")
+    repo.insert_track(_track(bpm=before, bpm_source=source))
+    repo.save_analyses([_analysis(bpm=128.0)])
+    track = repo.get_track("trk_1")
+    assert (track.bpm, track.bpm_source) == (after, after_source)
+    assert repo.get_analysis("trk_1").features.bpm == 128.0  # the measurement is always kept
+
+
+def test_bpm_source_survives_every_write_path():
+    repo = SQLiteTrackRepository(db_path=":memory:")
+    repo.insert_batch([_track(bpm=77.0, bpm_source="tag")])
+    track = repo.get_track("trk_1")
+    track.title = "Retagged"
+    repo.update_track(track)
+    assert repo.get_track("trk_1").bpm_source == "tag"
+    repo.insert_batch([_track(bpm=120.0, bpm_source="default")])  # rescan after the tag was removed
+    assert repo.get_track("trk_1").bpm_source == "default"
 
 
 def test_error_records_do_not_touch_the_catalog():

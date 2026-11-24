@@ -42,7 +42,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Scan and playback messages are shorter: the file path and the advice are in the issue (`/issue`). `/scan` says how many files were not indexed instead of "files with errors ignored".
 - `/play queue` is superseded by `/queue-play` (the old spelling is still accepted); `/play` is now documented as `/play [id]`.
 - The end-of-queue notice now says why the queue stopped (e.g. no playable track while repeating).
-- Measured BPM (when confident), LUFS and musical key are projected onto the catalog, so searches, BPM filters and the AI agent use real values. A new `track_analysis` table stores the detailed results; existing databases are migrated automatically.
+- LUFS, musical key and the measured BPM (when confident) are projected onto the catalog; a BPM that came from a tag is never overwritten (`bpm_source`: `tag`, `default` or `dsp`), and the measured one is kept in the analysis and shown by `/analyze show` (#29). Projected values appear in the catalog, so searches, BPM filters and the AI agent use real values. A new `track_analysis` table stores the detailed results; existing databases are migrated automatically.
 - NumPy (>= 2.0), SciPy and miniaudio are now runtime dependencies.
 - Re-scanning modified files updates their catalog rows in place (upsert) instead of replacing them, so play counts and queue entries are preserved.
 - Roadmap translated to English and renamed from `docs/ROADMAP_PROXIMAS_FUNCIONALIDADES.md` to `docs/ROADMAP.md`.

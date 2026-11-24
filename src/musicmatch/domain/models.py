@@ -14,8 +14,11 @@ Por que migramos de '@dataclass' para 'pydantic.BaseModel'?
 
 import hashlib
 from pathlib import Path
-from typing import List, Optional
+from typing import Any, List, Literal, Optional, Tuple
 from pydantic import BaseModel, Field
+
+# Placeholder for tracks without a BPM tag, until /analyze measures them.
+DEFAULT_BPM = 120.0
 
 class Track(BaseModel):
     """Representa uma faixa musical indexada com seus metadados essenciais e validados."""
@@ -39,8 +42,21 @@ class Track(BaseModel):
     year: Optional[int] = Field(default=None, description="Ano de lançamento extraído das tags")
     track_number: Optional[int] = Field(default=None, description="Número da faixa no álbum")
     musical_key: Optional[str] = Field(default=None, description="Tonalidade detectada pela análise acústica (ex: 'A minor')")
+    bpm_source: Optional[Literal["tag", "default", "dsp"]] = Field(
+        default=None,
+        description="Origin of 'bpm': file tag, placeholder or measured by /analyze (None: cataloged before it was recorded)",
+    )
     play_count: int = Field(default=0, ge=0, description="Reproduções contabilizadas da faixa (ADR 0016)")
     last_played_at: Optional[str] = Field(default=None, description="Data/hora UTC da última reprodução contabilizada")
+
+    @staticmethod
+    def bpm_from_tag(tag_value: Any) -> Tuple[float, Literal["tag", "default"]]:
+        """BPM and its source for a file tag; a missing or invalid tag gives the placeholder."""
+        try:
+            bpm = float(tag_value or 0)
+        except (TypeError, ValueError):
+            bpm = 0.0
+        return (bpm, "tag") if 0 < bpm < float("inf") else (DEFAULT_BPM, "default")
 
     @classmethod
     def canonicalize_path(cls, file_path: str) -> str:

@@ -208,7 +208,7 @@ class AudioScanner:
                 genre = (mf.genre or "").strip() or "Unknown Genre"
                 duration = float(mf.length or 0.0)
                 bitrate = int(mf.bitrate / 1000) if (mf.bitrate and mf.bitrate > 0) else 320
-                bpm = float(mf.bpm) if (mf.bpm and float(mf.bpm) > 0) else 120.0
+                bpm, bpm_source = Track.bpm_from_tag(mf.bpm)
                 year = int(mf.year) if (mf.year and str(mf.year).isdigit()) else None
                 track_num = int(mf.track) if (mf.track and str(mf.track).isdigit()) else None
 
@@ -221,6 +221,7 @@ class AudioScanner:
                     duration_seconds=duration,
                     bitrate_kbps=bitrate,
                     bpm=bpm,
+                    bpm_source=bpm_source,
                     file_path=str(p.resolve()).replace("\\", "/"),
                     file_mtime=stat.st_mtime,
                     file_size=stat.st_size,

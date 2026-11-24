@@ -554,6 +554,8 @@ class ConsoleUI:
         print(f"  Loudness Range     : {fmt(f.loudness_range_lu, ' LU')}")
         print(f"  Pico de amostra    : {fmt(f.sample_peak_dbfs, ' dBFS')}")
         print(f"  Andamento          : {fmt(f.bpm, ' BPM')}  (confiança {f.bpm_confidence:.0%})")
+        if getattr(track, "bpm_source", None) == "tag":
+            print(f"  Andamento na tag   : {fmt(track.bpm, ' BPM')}  (mantido no catálogo)")
         if f.musical_key:
             confidence = f" (confiança {f.key_confidence:.0%})" if f.key_confidence is not None else ""
             print(f"  Tonalidade         : {f.musical_key} · Camelot {f.camelot_key}{confidence}")

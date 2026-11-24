@@ -39,6 +39,7 @@ CREATE TABLE IF NOT EXISTS tracks (
     year INTEGER,
     track_number INTEGER,
     musical_key TEXT,
+    bpm_source TEXT,
     play_count INTEGER NOT NULL DEFAULT 0,
     last_played_at TEXT,
     created_at TEXT DEFAULT (datetime('now')),
@@ -272,6 +273,7 @@ TRACKS_COLUMN_MIGRATIONS = [
     ("year", "INTEGER"),
     ("track_number", "INTEGER"),
     ("musical_key", "TEXT"),
+    ("bpm_source", "TEXT"),
     ("play_count", "INTEGER NOT NULL DEFAULT 0"),
     ("last_played_at", "TEXT"),
 ]

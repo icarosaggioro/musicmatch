@@ -115,6 +115,34 @@ def test_reanalysis_is_incremental_and_follows_file_changes(tmp_path, repo, libr
     assert forced.total_candidates == 1 and forced.remaining_pending == 0
 
 
+def test_scan_records_where_the_bpm_came_from_and_analysis_keeps_tags(tmp_path, repo, library, service):
+    music = tmp_path / "music"
+    tag_file(_song_file(music / "tagged.wav", seed=1, title="Tagged", bpm=128.0), "Tagged", "Synth Band", bpm=77)
+    _song_file(music / "untagged.wav", seed=2, title="Untagged", bpm=96.0)
+    library.scan_and_ingest(str(music))
+    assert (_by_title(repo, "Tagged").bpm, _by_title(repo, "Tagged").bpm_source) == (77.0, "tag")
+    assert (_by_title(repo, "Untagged").bpm, _by_title(repo, "Untagged").bpm_source) == (120.0, "default")
+
+    service.analyze_library()
+    tagged, untagged = _by_title(repo, "Tagged"), _by_title(repo, "Untagged")
+    assert (tagged.bpm, tagged.bpm_source) == (77.0, "tag")
+    assert service.get_analysis(tagged.id).features.bpm == pytest.approx(128.0, abs=0.3)
+    assert untagged.bpm_source == "dsp" and untagged.bpm == pytest.approx(96.0, abs=0.3)
+
+
+def test_each_file_is_decoded_once_per_run(tmp_path, repo, library, service, monkeypatch):
+    music = tmp_path / "music"
+    for index in range(2):
+        _song_file(music / f"{index}.wav", seed=index + 1, title=f"Song {index}")
+    library.scan_and_ingest(str(music))
+    opened = []
+    decoder = service.analyzer.decoder
+    original = decoder.open
+    monkeypatch.setattr(decoder, "open", lambda path, *a, **k: opened.append(Path(path).name) or original(path, *a, **k))
+    assert service.analyze_library().analyzed_ok == 2
+    assert sorted(opened) == ["0.wav", "1.wav"]
+
+
 class _FaultyAnalyzer(AudioAnalyzer):
     """Real analyzer that fails for chosen file names (decoder error or unexpected bug)."""
 

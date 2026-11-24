@@ -20,7 +20,7 @@ from typing import Any, Dict, List, Optional, Union
 
 from musicmatch.config import settings
 from musicmatch.domain.analysis import ANALYSIS_VERSION, AudioFeatures, TrackAnalysis
-from musicmatch.domain.models import Track
+from musicmatch.domain.models import DEFAULT_BPM, Track
 from musicmatch.storage.schema import apply_schema
 
 # Current-analysis predicate shared by the pending/coverage queries: an analysis row is
@@ -54,6 +54,7 @@ def row_to_track(row: sqlite3.Row) -> Track:
         year=row["year"] if "year" in keys else None,
         track_number=row["track_number"] if "track_number" in keys else None,
         musical_key=row["musical_key"] if "musical_key" in keys else None,
+        bpm_source=row["bpm_source"] if "bpm_source" in keys else None,
         play_count=(row["play_count"] or 0) if "play_count" in keys else 0,
         last_played_at=row["last_played_at"] if "last_played_at" in keys else None,
     )
@@ -97,8 +98,8 @@ class SQLiteTrackRepository:
         INSERT INTO tracks (
             id, title, artist, album, genre, duration_seconds,
             bitrate_kbps, bpm, file_path, mood, lufs,
-            file_mtime, file_size, status, year, track_number, musical_key
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+            file_mtime, file_size, status, year, track_number, musical_key, bpm_source
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
         """
         with self.conn:
             self.conn.execute(
@@ -108,7 +109,7 @@ class SQLiteTrackRepository:
                     track.genre, track.duration_seconds, track.bitrate_kbps,
                     track.bpm, track.file_path, track.mood, track.lufs,
                     track.file_mtime, track.file_size, track.status,
-                    track.year, track.track_number, track.musical_key
+                    track.year, track.track_number, track.musical_key, track.bpm_source
                 )
             )
 
@@ -128,8 +129,8 @@ class SQLiteTrackRepository:
         INSERT INTO tracks (
             id, title, artist, album, genre, duration_seconds,
             bitrate_kbps, bpm, file_path, mood, lufs,
-            file_mtime, file_size, status, year, track_number, musical_key
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            file_mtime, file_size, status, year, track_number, musical_key, bpm_source
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ON CONFLICT(id) DO UPDATE SET
             title = excluded.title, artist = excluded.artist, album = excluded.album,
             genre = excluded.genre, duration_seconds = excluded.duration_seconds,
@@ -137,6 +138,7 @@ class SQLiteTrackRepository:
             mood = excluded.mood, lufs = excluded.lufs, file_mtime = excluded.file_mtime,
             file_size = excluded.file_size, status = excluded.status, year = excluded.year,
             track_number = excluded.track_number, musical_key = excluded.musical_key,
+            bpm_source = excluded.bpm_source,
             updated_at = datetime('now');
         """
         data = [
@@ -145,7 +147,7 @@ class SQLiteTrackRepository:
                 t.duration_seconds, t.bitrate_kbps, t.bpm,
                 t.file_path, t.mood, t.lufs,
                 t.file_mtime, t.file_size, t.status,
-                t.year, t.track_number, t.musical_key
+                t.year, t.track_number, t.musical_key, t.bpm_source
             )
             for t in tracks
         ]
@@ -171,7 +173,7 @@ class SQLiteTrackRepository:
             duration_seconds = ?, bitrate_kbps = ?, bpm = ?,
             file_path = ?, mood = ?, lufs = ?,
             file_mtime = ?, file_size = ?, status = ?,
-            year = ?, track_number = ?, musical_key = ?, updated_at = datetime('now')
+            year = ?, track_number = ?, musical_key = ?, bpm_source = ?, updated_at = datetime('now')
         WHERE id = ?;
         """
         with self.conn:
@@ -182,7 +184,7 @@ class SQLiteTrackRepository:
                     track.duration_seconds, track.bitrate_kbps, track.bpm,
                     track.file_path, track.mood, track.lufs,
                     track.file_mtime, track.file_size, track.status,
-                    track.year, track.track_number, track.musical_key, track.id
+                    track.year, track.track_number, track.musical_key, track.bpm_source, track.id
                 )
             )
             return cursor.rowcount > 0
@@ -537,7 +539,9 @@ class SQLiteTrackRepository:
 
         The projection keeps /list, /search, FTS filters and the AI agent working on real
         measurements without joins: lufs and musical_key are replaced; bpm is replaced only
-        when a tempo was detected with enough confidence (otherwise the tag value stays).
+        when a tempo was detected with enough confidence and the catalog value is not a tag (it
+        is the placeholder or an earlier measurement). Tags are never overwritten; the measured
+        BPM is always kept in 'track_analysis'.
         Records whose track disappeared meanwhile are skipped. Returns rows written.
         """
         from musicmatch.dsp.waveform import quantize
@@ -593,12 +597,19 @@ class SQLiteTrackRepository:
                         UPDATE tracks SET
                             lufs = ?,
                             musical_key = ?,
-                            bpm = COALESCE(?, bpm),
                             updated_at = datetime('now')
                         WHERE id = ?;
                         """,
-                        (f.integrated_lufs, f.musical_key, projected_bpm, a.track_id),
+                        (f.integrated_lufs, f.musical_key, a.track_id),
                     )
+                    if projected_bpm is not None:
+                        self.conn.execute(
+                            """
+                            UPDATE tracks SET bpm = ?, bpm_source = 'dsp'
+                            WHERE id = ? AND (bpm_source IN ('default', 'dsp') OR (bpm_source IS NULL AND bpm = ?));
+                            """,
+                            (projected_bpm, a.track_id, DEFAULT_BPM),
+                        )
                 written += 1
         return written
 

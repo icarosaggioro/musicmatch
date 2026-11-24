@@ -36,7 +36,7 @@ def test_k_weighting_matches_bs1770_reference_at_48k():
 @pytest.mark.parametrize("level", [-23.0, -33.0])
 def test_ebu_tech3341_stereo_sine_reads_its_level(level):
     # EBU Tech 3341 cases 1/2: 1 kHz stereo sine at -23 / -33 dBFS -> -23.0 / -33.0 LUFS (+/-0.1).
-    result = _measure(sine(1000, 10, level, sr=48000), 48000)
+    result = _measure(sine(1000, 20, level, sr=48000), 48000)
     assert result.integrated_lufs == pytest.approx(level, abs=0.1)
     assert result.sample_peak_dbfs == pytest.approx(level, abs=0.05)
 

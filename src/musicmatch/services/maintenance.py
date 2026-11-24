@@ -348,6 +348,7 @@ class LibraryMaintenanceService:
 
                 # Index in catalog
                 stat = dest_file.stat()
+                bpm, bpm_source = Track.bpm_from_tag(mf.bpm)
                 track = Track(
                     id=Track.generate_id(str(dest_file)),
                     title=(mf.title or "").strip() or p.stem,
@@ -356,7 +357,8 @@ class LibraryMaintenanceService:
                     genre=(mf.genre or "").strip() or "Unknown Genre",
                     duration_seconds=float(mf.length or 0.0),
                     bitrate_kbps=int(mf.bitrate / 1000) if (mf.bitrate and mf.bitrate > 0) else 320,
-                    bpm=float(mf.bpm) if (mf.bpm and float(mf.bpm) > 0) else 120.0,
+                    bpm=bpm,
+                    bpm_source=bpm_source,
                     file_path=str(dest_file.resolve()).replace("\\", "/"),
                     file_mtime=stat.st_mtime,
                     file_size=stat.st_size,
