@@ -145,7 +145,9 @@ def test_m3u_parser_handles_extinf_relative_paths_urls_and_encodings(tmp_path):
     one, two, radio, three = entries
     assert one.location == str(tmp_path / "music" / "one.mp3")
     assert (one.duration, one.artist, one.title) == (215.0, "Daft Punk", "One More Time")
-    assert two.location == os.path.normpath("/opt/My Music/two.flac") and two.duration is None and two.artist is None
+    # A rooted path has no drive on Windows: it takes the drive of the playlist file.
+    assert two.location == os.path.normpath(os.path.join(m3u.parent, "/opt/My Music/two.flac"))
+    assert two.duration is None and two.artist is None
     assert radio.remote and radio.location == "http://radio.example/stream"
     assert not three.remote and three.artist is None  # '#EXTINF' applies to the next entry only
 
@@ -177,9 +179,9 @@ def test_import_resolves_by_path_then_by_tags_and_reports_the_rest(service, libr
     result = service.import_m3u(m3u, "Mix")
     assert (result.total_entries, result.matched_by_path, result.matched_by_tags) == (5, 1, 1)
     assert result.not_in_catalog == [unscanned.file_path]
-    # Not absolute on this OS, so resolved next to the playlist file; not found either way.
+    # Absolute on Windows; elsewhere resolved next to the playlist file. Not found either way.
     live = "D:/Other Machine/Song (live).mp3"
-    assert result.missing_files == [live if os.path.isabs(live) else os.path.normpath(str(tmp_path / live))]
+    assert result.missing_files == [os.path.normpath(os.path.join(tmp_path, live))]
     assert result.remote_entries == ["https://example.com/live.mp3"]
     playlist = service.get(result.playlist.id)
     assert ids_of(playlist) == [by_path.id, by_tags.id]  # the 1411 kbps copy beats the 128 kbps one
@@ -189,7 +191,8 @@ def test_import_with_nothing_matched_creates_nothing_and_bad_files_are_rejected(
     m3u = tmp_path / "empty.m3u"
     m3u.write_text("/nowhere/a.mp3\n", encoding="utf-8")
     result = service.import_m3u(m3u, "Empty")
-    assert result.playlist is None and result.missing_files == [os.path.normpath("/nowhere/a.mp3")]
+    assert result.playlist is None
+    assert result.missing_files == [os.path.normpath(os.path.join(tmp_path, "/nowhere/a.mp3"))]
     assert service.list() == []
     with pytest.raises(PlaylistFileError, match="não encontrado"):
         service.import_m3u(tmp_path / "absent.m3u8", "x")

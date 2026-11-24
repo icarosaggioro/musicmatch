@@ -22,6 +22,7 @@ from musicmatch.domain.issues import IssueKind, IssueReport
 from musicmatch.domain.models import Track
 from musicmatch.domain.player import PlayerEvent, PlayerState
 from musicmatch.services.issues import IssueReporter, current_issue_reporter, report_issue, set_issue_reporter
+from musicmatch.services import scanner
 from musicmatch.services.scanner import AudioScanner, name_problem
 from musicmatch.storage.issue_store import SQLiteIssueStore
 from musicmatch.storage.sqlite_repo import SQLiteTrackRepository
@@ -227,15 +228,25 @@ def test_closing_persists_what_is_still_queued():
 # ----------------------------------------------------------------------
 
 
-def test_scanner_turns_bad_files_and_names_into_issues(tmp_path, reporter):
+def test_scanner_turns_bad_files_and_names_into_issues(tmp_path, reporter, monkeypatch):
     lib = tmp_path / "lib"
+    long_name = "long-enough-to-pass-the-limit-long.wav"
+    deep = lib / ("d" * 120) / ("e" * 120)
+    bad_folder, bad_file = "CON", "what?.wav"
+    if os.name == "nt":
+        # Windows itself refuses these names and (by default) paths over 260 characters, so the
+        # same rules are exercised with names and lengths it can create. The real rules are
+        # platform independent and covered by test_name_rules.
+        deep = lib / "deep"
+        bad_folder, bad_file = "RESERVEDX", "reservedx.wav"
+        monkeypatch.setattr(scanner, "_RESERVED_NAMES", {*scanner._RESERVED_NAMES, "RESERVEDX"})
+        monkeypatch.setattr(scanner, "WINDOWS_MAX_PATH", len(str(deep / long_name)))
     write_wav(lib / "fine.wav", sine(440, 0.3, -6.0))
-    write_wav(lib / "CON" / "what?.wav", sine(440, 0.3, -6.0))  # indexed, but not portable
+    write_wav(lib / bad_folder / bad_file, sine(440, 0.3, -6.0))  # indexed, but not portable
     (lib / "empty.wav").write_bytes(b"")
     (lib / "corrupt.mp3").write_bytes(b"not audio" * 200)
     write_wav(lib / "silence.wav", sine(440, 0.0, -6.0))  # valid file, no audio frames
-    deep = lib / ("d" * 120) / ("e" * 120)
-    write_wav(deep / "long.wav", sine(440, 0.3, -6.0))
+    write_wav(deep / long_name, sine(440, 0.3, -6.0))
     undecodable_name = None
     if sys.platform.startswith("linux"):
         undecodable_name = os.fsencode(str(lib)) + b"/bad\xff.wav"
@@ -247,16 +258,16 @@ def test_scanner_turns_bad_files_and_names_into_issues(tmp_path, reporter):
     issues = open_issues(reporter)
     by_kind = {}
     for (kind, key), issue in issues.items():
-        by_kind.setdefault(kind, []).append(key.replace(str(lib), ""))
+        by_kind.setdefault(kind, []).append(key.replace(str(lib), "").replace(os.sep, "/"))
 
     assert by_kind[IssueKind.FILE_EMPTY] == ["/empty.wav"]
     assert by_kind[IssueKind.TAGS_UNREADABLE] == ["/corrupt.mp3"]
     assert by_kind[IssueKind.AUDIO_EMPTY] == ["/silence.wav"]
     assert sorted(by_kind[IssueKind.NAME_NOT_PORTABLE]) == sorted(
-        ["/CON", "/CON/what?.wav"] + (["/bad\\xff.wav"] if undecodable_name else []))
-    assert [k.endswith("long.wav") for k in by_kind[IssueKind.PATH_TOO_LONG]] == [True]
+        [f"/{bad_folder}", f"/{bad_folder}/{bad_file}"] + (["/bad\\xff.wav"] if undecodable_name else []))
+    assert [k.endswith(long_name) for k in by_kind[IssueKind.PATH_TOO_LONG]] == [True]
     indexed = {Path(t.file_path).name for t in repo.get_all_tracks()}
-    assert indexed == {"fine.wav", "what?.wav", "silence.wav", "long.wav"}  # bad bytes / empty / corrupt stay out
+    assert indexed == {"fine.wav", bad_file, "silence.wav", long_name}  # bad bytes / empty / corrupt stay out
     assert result.errors_count == 2 + (1 if undecodable_name else 0)
     assert all(i.source == "scan" and "sugestão" in i.details for i in issues.values())
 

@@ -17,6 +17,12 @@ Entry = Tuple[str, int, int]  # kind ('f' file / 'd' directory), size, mtime_ns
 Snapshot = Optional[Dict[str, Entry]]  # None: the root does not exist
 
 
+def _is_virtualenv(path: str) -> bool:
+    """A virtual environment whatever its name: walking its thousands of files before and after
+    every test would multiply the duration of the suite."""
+    return os.path.isfile(os.path.join(path, "pyvenv.cfg"))
+
+
 def snapshot(root: Path) -> Snapshot:
     """Every file and directory under `root` (relative path -> kind, size, mtime)."""
     root = Path(root)
@@ -24,7 +30,10 @@ def snapshot(root: Path) -> Snapshot:
         return None
     entries: Dict[str, Entry] = {}
     for current, dirs, files in os.walk(root):
-        dirs[:] = sorted(d for d in dirs if d not in SKIPPED_DIRS and not d.endswith(".egg-info"))
+        dirs[:] = sorted(
+            d for d in dirs
+            if d not in SKIPPED_DIRS and not d.endswith(".egg-info") and not _is_virtualenv(os.path.join(current, d))
+        )
         for name in dirs:
             path = os.path.join(current, name)
             entries[os.path.relpath(path, root)] = ("d", 0, 0)

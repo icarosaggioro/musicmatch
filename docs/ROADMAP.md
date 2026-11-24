@@ -3,7 +3,7 @@
 > **Project**: MusicMatch
 > **Formalized**: September 2026 (status last updated November 2026)
 > **Status**: Approved for planning
-> **Architectural reference**: Builds on ADRs 0001 to 0013 and the engineering studies in `docs/`
+> **Architectural reference**: Builds on ADRs 0001 to 0021 and the engineering studies in `docs/`
 
 ---
 
@@ -23,8 +23,8 @@ With the data, persistence and harness foundations validated, this document defi
 | Front | Status | Tracking |
 | :--- | :--- | :--- |
 | **Front 1: Web Ingestion & Safe Download (`yt-dlp`)** | ✅ Delivered in 0.2.0 (`/download`, `/staging`, `/promote`) | PRs #1, #2 · leftovers (`/inspect-url`, `download_track` agent tool): issue #13 |
-| **Front 2: Acoustic DSP Engine & Real Fingerprinting** | ⏳ Planned | Issue #11 |
-| **Front 3: Terminal Audio Playback (Player Engine)** | ⏳ Planned, next by priority | Issue #9 |
+| **Front 2: Acoustic DSP Engine & Real Fingerprinting** | 🚧 In progress: `/analyze` and `/audit duplicates --exact \| --fuzzy` work; open criteria in the issues | [ADR 0014](adr/0014-acoustic-analysis-pipeline-and-fingerprint-deduplication.md) · issues #28, #29, #30 (epic #11) |
+| **Front 3: Terminal Audio Playback (Player Engine)** | 🚧 In progress: playback, persistent queue and saved playlists work; open criteria in the issue | [ADR 0015](adr/0015-cross-platform-audio-playback-engine-and-play-queue.md) to [0018](adr/0018-saved-playlists-m3u-import-export-and-playlist-commands.md) · issue #9 |
 | **Front 4: Vibe Curation & Semantic Search (Gemini)** | ⏳ Planned | Issue #10 |
 | **Front 5: Library Auditor, Consolidation & Safe Deletion** | ✅ Delivered in 0.2.0 (`/audit`, `/delete`, `/prune`, `/retag`, `/unindex`, `/library import \| reorganize`) | ADR 0013 |
 | **Front 6: Multi-Turn Conversational Session & Subagents** | ⏳ Planned | Issue #12 |
@@ -97,7 +97,7 @@ As described in the reports [`docs/YT-DLP_TECHNICAL_REPORT.md`](YT-DLP_TECHNICAL
 
 ### Front 2: Acoustic DSP Engine and Real Fingerprinting
 
-**Status:** ⏳ Planned (issue #11).
+**Status:** 🚧 In progress (issues #28, #29 and #30; epic #11). Analysis is a separate `/analyze` step and detailed results live in the `track_analysis` table ([ADR 0014](adr/0014-acoustic-analysis-pipeline-and-fingerprint-deduplication.md)).
 
 #### Goal
 Replace provisional audio metrics with real analysis of the audio signal, enabling acoustic deduplication and recommendations grounded in the physics of sound.
@@ -128,7 +128,7 @@ Today `bpm` depends on manual ID3 tags (or defaults to `120.0`) and `lufs` (loud
 
 ### Front 3: Integrated Terminal Audio Playback (Player Engine)
 
-**Status:** ⏳ Planned, next by priority (issue #9).
+**Status:** 🚧 In progress (issue #9). Output through `miniaudio` ([ADR 0015](adr/0015-cross-platform-audio-playback-engine-and-play-queue.md)); persistent queue (ADR 0016), queue modes (ADR 0017) and saved playlists (ADR 0018) are in place.
 
 #### Goal
 Let the user play tracks directly from the MusicMatch interface, with transport controls, a play queue and a visual progress indicator.

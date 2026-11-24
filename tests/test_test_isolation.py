@@ -35,6 +35,8 @@ def test_guard_reports_created_modified_and_deleted_entries(tmp_path):
     (watched / "__pycache__").mkdir()  # tooling output is ignored
     (watched / "__pycache__" / "x.pyc").write_bytes(b"x")
     (watched / ".coverage").write_text("x")
+    (watched / "any-env-name" / "Lib").mkdir(parents=True)  # so are virtual environments, whatever their name
+    (watched / "any-env-name" / "pyvenv.cfg").write_text("x")
 
     found = guard.violations()
     assert f"+ {watched / 'data' / 'new.db'}" in found
@@ -42,7 +44,7 @@ def test_guard_reports_created_modified_and_deleted_entries(tmp_path):
     assert f"- {watched / 'data' / 'drop.txt'}" in found
     assert f"+ {watched / 'Playlists'}" in found
     assert f"+ {tmp_path / 'library'} (created)" in found
-    assert not any("__pycache__" in line or ".coverage" in line or "keep.txt" in line for line in found)
+    assert not any("__pycache__" in line or ".coverage" in line or "keep.txt" in line or "any-env-name" in line for line in found)
     assert len(found) == 5
 
 
